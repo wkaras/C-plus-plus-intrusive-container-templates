@@ -18,7 +18,7 @@ SOFTWARE.
 */
 
 // Abstract AVL Tree Template Example 1.
-// Version: 1.6
+// Version: 1.7
 
 // This example shows how to use the AVL template to create the
 // env class.  The env class stores multiple variables with string

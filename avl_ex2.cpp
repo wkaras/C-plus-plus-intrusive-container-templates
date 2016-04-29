@@ -18,7 +18,7 @@ SOFTWARE.
 */
 
 // Abstract AVL Tree Template Example 2.
-// Version: 1.6
+// Version: 1.7
 
 // This example shows how to use the AVL template to create the
 // ip_addr_cnt class.  Imagine we are writing software for an
