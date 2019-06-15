@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2016 Walter William Karas
+Copyright (c) 2019 K. Miller
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -115,7 +116,7 @@ void since(const Tm_val start, Tm_val &tm)
     else
       {
         tm.tv_usec += 1000000 - start.tv_usec;
-        tm.tv_sec -= start.tv_sec;
+        tm.tv_sec -= start.tv_sec + 1;
         if (tm.tv_usec >= 1000000)
           {
             tm.tv_usec -= 1000000;
