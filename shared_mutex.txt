@@ -1,0 +1,78 @@
+
+struct Per_thread
+  {
+    atomic<Per_thread> *link;
+    atomic<bool> sharing; // bit map indexed by mutex index. xxxxx
+BETTER APPROACH:
+    atomic<lu_shared_mutex> *sharing[max_locks_a_thread_can_simultaneously_hold];  // nullptr means no sharing flag.
+      // maybe this should be allocated from heap by constructor, so max simultaneous is not fixed?
+  };
+
+thread_local Per_thread pt;
+
+enum Unique_status { No, Want, Yes }
+std::atomic<Unique_status> unique{No};
+std::atomic<bool> notify_uniq_cond{false};
+mutex uniq_mtx, sharing_list_mtx
+cond wait_share_cond;
+cond wait_uniq_cond;
+
+void shared_lock()
+  {
+    pt.sharing.store(true, seq_cst);
+    if (unique.load(seq_cst) == No)
+      return;
+    {
+      std::unique_lock lk{uniq_mtx};
+      while (unique.load(seq_cst) != No)
+        {
+          pt.sharing.store(false, seq_cst);
+          wait_share_cond.wait(lk);
+          pt.sharing.store(true, seq_cst);
+        }
+    }
+  }
+
+void shared_unlock()
+  {
+    pt.sharing.store(false, seq_cst);
+    if (unique.load(seq_cst) != Want)
+      return;
+    if (not all sharing false (seq_cst reads, take sharing_list_mtx))
+      return;
+    bool f{false};
+    if (notify_uniq_cond.compare_exchange_strong(f, true, seq_cst, relaxed?))
+      {
+        wait_uniq_cond.notify_one();
+        notify_uniq_cond.store(false, seq_cst);
+      }
+  }
+
+void unique_lock()
+  {
+    uniq_mtx.lock();
+    for (;;)
+      {
+        unique.store(Want, seq_cst);
+        if (all sharing false (seq_cst reads, take sharing_list_mtx))
+          {
+            unique.store(Yes, seq_cst);
+            break;
+          }
+        wait_uniq_cond.wait(lk);
+      }
+  }
+
+void unique_unlock()
+  {
+    unique.store(No, seq_cst);
+    wait_share_cond.notify_all();
+    uniq_mtx.unlock();
+
+    bool f{false};
+    if (notify_uniq_cond.compare_exchange_strong(f, true, seq_cst, relaxed?))
+      {
+        wait_uniq_cond.notify_one();
+        notify_uniq_cond.store(false, seq_cst);
+      }
+  }
