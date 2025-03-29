@@ -13,3 +13,8 @@ classes that throw exceptions, you must assume the data structure is in an
 undefined state after an exception is thrown.  boost::instrusive, as well
 as the STL, will restore the data structure to the pre-call state in the
 event of an exception throw.
+
+This repo also contains an implementation of "rarely unique" shared
+mutexes.  If there are many more shared locks of the mutex than unique
+locks, and other conditions are met, this alternative shared mutex may
+provide significantly better performance than std::shared_mutex.
