@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Walter William Karas
+Copyright (c) 2016, 2025 Walter William Karas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -59,7 +59,7 @@ namespace abstract_container
 //   of keys (with zero being the minimum).
 //
 template <class abstractor>
-class base_hash_table : protected abstractor
+class base_hash_table : public abstractor
   {
   protected:
 
@@ -219,7 +219,7 @@ namespace impl
 {
 
 template <class abstractor>
-class hash_table_abs : protected abstractor
+class hash_table_abs : public abstractor
   {
   private:
 

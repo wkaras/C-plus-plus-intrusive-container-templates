@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Walter William Karas
+Copyright (c) 2016, 2025 Walter William Karas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -98,7 +98,7 @@ void wait_while_full() -- block in pushing thread, waiting for
   non-blocking specializations.
 */
 template <class abstractor>
-class circ_que : protected abstractor
+class circ_que : public abstractor
   {
   public:
 

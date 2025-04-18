@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Walter William Karas
+Copyright (c) 2016, 2025 Walter William Karas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -73,7 +73,7 @@ handle link(handle h) -- must return the stored handle value that was most
   link() member function.
 */
 template <class abstractor>
-class list : protected abstractor
+class list : public abstractor
   {
   public:
 

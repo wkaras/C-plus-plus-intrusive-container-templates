@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Walter William Karas
+Copyright (c) 2016, 2025 Walter William Karas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -64,7 +64,7 @@ handle link(handle h, bool is_forward) -- for the specified direction,
   the element associated with handle h by the other link() member function.
 */
 template <class abstractor>
-class bidir_list : protected abstractor
+class bidir_list : public abstractor
   {
   public:
 
