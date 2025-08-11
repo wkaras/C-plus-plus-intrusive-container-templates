@@ -50,7 +50,7 @@ namespace abstract_container
 // list & bucket(index) -- returns the list to use as a bucket to store
 //   each element in the table with the given hash value.  lists must
 //   initially be in empty (purged) state.
-// bool is_key(index, handle) -- returns true if the first parameter is
+// bool is_key(key, handle) -- returns true if the first parameter is
 //   the key of the element whose handle is the second parameter.
 //
 // Static constants:
