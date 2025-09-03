@@ -272,6 +272,8 @@ END_TEST
 START_TEST
 
 // Test try_lock() unique functionality - this was previously unused
+// This test exercises the try_lock() code path (TU0-TU3 labels) which
+// was not covered by any existing tests
 enum
   {
     tu_idx,
@@ -287,11 +289,45 @@ END_TEST
 
 START_TEST
 
-// Simple additional test to exercise more code paths
-// This test exercises the try_lock_shared function with blocking
-
+// Additional try_lock_shared test for more coverage
+// This provides additional exercise of the TS0 path and non-blocking behavior
 // Test that try_lock_shared succeeds when no unique lock is held
 start_thr(tf_try_lock_shared, 0);
+
+END_TEST
+
+START_TEST
+
+// Test try_lock_shared with per-thread data destruction
+// This ensures the per-thread data cleanup path (DPTD) is exercised
+// with try_lock_shared operations
+enum
+  {
+    ts_idx,
+    num_t
+  };
+
+thr.resize(num_t);
+
+start_thr_s(tf_try_lock_shared, ts_idx, "TS0");
+thr[ts_idx].block_loc = "";
+
+END_TEST
+
+START_TEST
+
+// Additional try_lock_unique test for robustness
+// Provides more coverage of the try_lock() path with different timing
+enum
+  {
+    tu_idx,
+    num_t
+  };
+
+thr.resize(num_t);
+
+// Simple try_lock_unique test
+start_thr(tf_try_lock_unique, tu_idx);
 
 END_TEST
 
