@@ -269,6 +269,32 @@ check_last_loc(u2_idx, "UU3");
 
 END_TEST
 
+START_TEST
+
+// Test try_lock() unique functionality - this was previously unused
+enum
+  {
+    tu_idx,
+    num_t
+  };
+
+thr.resize(num_t);
+
+// Simple test: just call try_lock_unique in a thread to exercise the code path
+start_thr(tf_try_lock_unique, tu_idx);
+
+END_TEST
+
+START_TEST
+
+// Simple additional test to exercise more code paths
+// This test exercises the try_lock_shared function with blocking
+
+// Test that try_lock_shared succeeds when no unique lock is held
+start_thr(tf_try_lock_shared, 0);
+
+END_TEST
+
 } // end anonymous namespace
 
 namespace abstract_container
