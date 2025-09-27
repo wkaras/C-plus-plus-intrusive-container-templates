@@ -7,7 +7,8 @@
 #include <random>
 #include <bitset>
 
-#include "ru_shared_mutex.h"
+#include "lw_shared_mutex.h"
+#include "plw_shared_mutex.h"
 
 /*
 Speed test oriented towards the scenario where two shared mutexes protect two redundant copies of
@@ -77,7 +78,7 @@ class test_t
     static void thr_func(unsigned th_idx, mutex0_t *mtxp0, mutex1_t *mtxp1)
       {
         {
-          // The first shared lock has overhead for ru_mutex_shared.
+          // In case first shared lock has overhead.
           //
           std::shared_lock{*mtxp0};
           std::shared_lock{*mtxp1};
@@ -195,18 +196,18 @@ class test_t
       }
   };
 
-abstract_container::ru_shared_mutex::id id0;
-using rusm0_t = abstract_container::ru_shared_mutex::c<id0>;
+abstract_container::lw_shared_mutex lw_sh_mtx[2];
 
-abstract_container::ru_shared_mutex::id id1;
-using rusm1_t = abstract_container::ru_shared_mutex::c<id1>;
+abstract_container::plw_shared_mutex plw_sh_mtx[2];
 
 std::shared_mutex sh_mtx[2];
 
-void pair(unsigned n_unique_ops_per_cycle)
+void triple(unsigned n_unique_ops_per_cycle)
   {
-    std::cout << "\n\nru_shared_mutex: " << n_unique_ops_per_cycle << " per " << n_ops_per_cycle << '\n';
-    test_t{rusm0_t::inst(), rusm1_t::inst(), n_unique_ops_per_cycle};
+    std::cout << "\nlw_shared_mutex: " << n_unique_ops_per_cycle << " per " << n_ops_per_cycle << '\n';
+    test_t{lw_sh_mtx[0], lw_sh_mtx[1], n_unique_ops_per_cycle};
+    std::cout << "\nplw_shared_mutex: " << n_unique_ops_per_cycle << " per " << n_ops_per_cycle << '\n';
+    test_t{plw_sh_mtx[0], plw_sh_mtx[1], n_unique_ops_per_cycle};
     std::cout << "\nstd::shared_mutex: " << n_unique_ops_per_cycle << " per " << n_ops_per_cycle << '\n';
     test_t{sh_mtx[0], sh_mtx[1], n_unique_ops_per_cycle};
   }
@@ -216,12 +217,12 @@ void pair(unsigned n_unique_ops_per_cycle)
 int main()
   {
     std::cout << "counts: reads/writes\n";
-    pair(0);
-    pair(1);
-    pair(5);
-    pair(10);
-    pair(100);
-    pair(50000);
+    triple(0);
+    triple(1);
+    triple(5);
+    triple(10);
+    triple(100);
+    triple(50000);
 
     return 0;
   }
