@@ -26,8 +26,16 @@ SOFTWARE.
 #include <cstdint>
 #include <random>
 #include <bitset>
+#include <cstdlib>
+
+inline void fatal_error(char const *, unsigned)
+  {
+    std::cout << "fatal error\n";
+    std::exit(1);
+  }
 
 #include "ru_shared_mutex.h"
+#include "Bravo.h"
 
 auto const hw_destructive_interference_size =
 #ifdef __cpp_lib_hardware_interference_size
@@ -56,7 +64,7 @@ alignas(hw_destructive_interference_size) volatile counter_t counter[n_threads];
 std::atomic<bool> go, stop;
 std::atomic<unsigned> running_thread_count;
 
-template <class mutex_t>
+template <template <class> class sh_lock_t, class mutex_t>
 class test_t
   {
   private:
@@ -67,7 +75,7 @@ class test_t
         {
           // The first shared lock has overhead for ru_mutex_shared.
           //
-          std::shared_lock sl{*mtxp};
+          sh_lock_t sl{*mtxp};
         }
         ++running_thread_count;
 
@@ -84,7 +92,7 @@ class test_t
               }
             else
               {
-                std::shared_lock sl{*mtxp};
+                sh_lock_t sl{*mtxp};
                 counter[th_idx].v = counter[th_idx].v + 1;
               }
 
@@ -165,25 +173,29 @@ class test_t
 abstract_container::ru_shared_mutex::id id;
 using rusm_t = abstract_container::ru_shared_mutex::c<id, abstract_container::ru_shared_mutex::fast_ptd_func<id> >;
 
+ts::bravo::shared_mutex bravo_mtx;
+
 std::shared_mutex sh_mtx;
 
-void pair(unsigned n_unique_locks_per_cycle)
+void triple(unsigned n_unique_locks_per_cycle)
   {
     std::cout << "\n\nru_shared_mutex: " << n_unique_locks_per_cycle << " per " << n_locks_per_cycle << '\n';
-    test_t{rusm_t::inst(), n_unique_locks_per_cycle};
+    test_t<std::shared_lock, rusm_t>{rusm_t::inst(), n_unique_locks_per_cycle};
+    std::cout << "\nbravo::shared_mutex: " << n_unique_locks_per_cycle << " per " << n_locks_per_cycle << '\n';
+    test_t<ts::bravo::shared_lock, ts::bravo::shared_mutex>{bravo_mtx, n_unique_locks_per_cycle};
     std::cout << "\nstd::shared_mutex: " << n_unique_locks_per_cycle << " per " << n_locks_per_cycle << '\n';
-    test_t{sh_mtx, n_unique_locks_per_cycle};
+    test_t<std::shared_lock, std::shared_mutex>{sh_mtx, n_unique_locks_per_cycle};
   }
 
 } // end anonymous namespace
 
 int main()
   {
-    pair(0);
-    pair(1);
-    pair(10);
-    pair(50);
-    pair(5000);
+    triple(0);
+    triple(1);
+    triple(10);
+    triple(50);
+    triple(5000);
 
     return(0);
   }
