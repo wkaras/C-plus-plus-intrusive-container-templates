@@ -22,12 +22,21 @@ SOFTWARE.
 
 // Include twice to test guarding against redefinition.
 //
-#include "ru_shared_mutex.h"
-#include "ru_shared_mutex.h"
+//#include "ru_shared_mutex.h"
+//#include "ru_shared_mutex.h"
 
 #include <thread>
 #include <atomic>
 #include <iostream>
+#include <cstdlib>
+
+inline void fatal_error(char const *, unsigned)
+  {
+    std::cout << "fatal error\n";
+    std::exit(1);
+  }
+
+#include "Bravo.h"
 
 namespace
 {
@@ -38,8 +47,9 @@ namespace
     std::exit(1);
   }
 
-abstract_container::ru_shared_mutex::id id;
-auto &sh_mtx{abstract_container::ru_shared_mutex::c<id>::inst()};
+//abstract_container::ru_shared_mutex::id id;
+//auto &sh_mtx{abstract_container::ru_shared_mutex::c<id>::inst()};
+ts::bravo::shared_mutex sh_mtx;
 
 enum class cmd_t
   {
@@ -69,6 +79,8 @@ void thr_func(thr_data_t * const thr)
   {
     thr->cmd = unsigned(cmd_t::none);
 
+    ts::bravo::Token tok{0};
+
     for ( ; ; )
       {
         while (unsigned(cmd_t::none) == thr->cmd.load())
@@ -77,13 +89,15 @@ void thr_func(thr_data_t * const thr)
         switch (cmd_t(thr->cmd.load()))
           {
           case cmd_t::lock:
-            sh_mtx.lock_shared();
+            tok = 0;
+            sh_mtx.lock_shared(tok);
             break;
           case cmd_t::try_lock:
-            thr->try_result = sh_mtx.try_lock_shared();
+            tok = 0;
+            thr->try_result = sh_mtx.try_lock_shared(tok);
             break;
           case cmd_t::unlock:
-            sh_mtx.unlock_shared();
+            sh_mtx.unlock_shared(tok);
             break;
           case cmd_t::exit:
             return;
