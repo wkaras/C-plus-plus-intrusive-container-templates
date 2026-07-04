@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Walter William Karas
+Copyright (c) 2026 Walter William Karas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ SOFTWARE.
 //
 // See avl_tree.html for interface documentation.
 //
-// Version: 1.7
+// Version: 1.7.1
 //
 // NOTE: Within the implementation, it's generally more convenient to
 // define the depth of the root node to be 0 (0-based depth) rather than
@@ -527,10 +527,14 @@ class base_avl_tree
       {
 	// The handle of the root element in the AVL tree.
 	handle root;
+
+        #if __cplusplus >= 201100
+        template<typename ... args_t>
+        abs_plus_root(args_t && ... args) : abstractor(std::forward<args_t>(args)...) { }
+        #endif
       };
 
     abs_plus_root abs;
-
 
     handle get_lt(handle h, bool access = true)
       { return(abs.get_less(h, access)); }

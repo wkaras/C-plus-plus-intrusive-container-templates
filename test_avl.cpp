@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Walter William Karas
+Copyright (c) 2026 Walter William Karas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -18,7 +18,7 @@ SOFTWARE.
 */
 
 // Abstract AVL Tree Template Test Suite.
-// Version: 1.7
+// Version: 1.7.1
 
 #include "stdio.h"
 #include "stdlib.h"
@@ -680,7 +680,7 @@ int main()
     for (i = 0; i < 400; i++)
       arr2[i].val = i * 2;
 
-    memcpy(arr, arr2, sizeof(arr));
+    memcpy(arr, arr2, sizeof(arr2));
 
     max_elems = 3;
     mark_bf();
