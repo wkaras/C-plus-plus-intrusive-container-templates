@@ -120,8 +120,14 @@ class base_avl_tree
     #if __cplusplus >= 201100
 
     base_avl_tree(const base_avl_tree &) = delete;
-
     base_avl_tree & operator = (const base_avl_tree &) = delete;
+
+    #else
+
+  private:
+    base_avl_tree(const base_avl_tree &) { }
+    base_avl_tree & operator = (const base_avl_tree &) { }
+  public:
 
     #endif
 

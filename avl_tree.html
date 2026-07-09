@@ -1,0 +1,551 @@
+<center>
+<h1>
+C++ AVL Tree Template
+</h1>
+</center>
+<center>
+Version 1.7
+</center>
+<p>Copyright (c) 2016 Walter William Karas</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+“Software”), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so.</p>
+<p>THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+<h1 id="introduction">1  Introduction</h1>
+<p>This document explains how to use the avl_tree template. 
+Adelson-Velskii and Landis Balanced Binary Search Trees (or AVL Trees)
+are described in the <a
+href="http://en.wikipedia.org/wiki/Avl_tree">Wikipedia</a> , and in many
+good textbooks on fundamental data structures.  I have also written a C
+language version ( <a
+href="https://wkaras.github.io/gen_c/cavl_tree.html">doc</a> <a
+href="https://wkaras.github.io/gen_c/cavl_tree.zip">zip</a> ) of this
+data structure.</p>
+<p>To avoid possible confusion about the terms that I use in this
+document (and in the source comments), here is a summary description of
+AVL Trees.  An AVL Tree is a set of <em>nodes</em> (or
+<em>elements</em>).  Each node is associated with a unique <em>key</em>
+value.  The key values can be ordered from least to greatest.  Each node
+in the tree may (or may not) have a <em>less child</em> node, and it may
+(or may not) have a <em>greater child</em> node.  If node A is a child
+of node B, then B is the <em>parent</em> of A.  If A is the less child
+of B, A’s key must be less than B’s key.  Similarly, if A is the greater
+child of B, A’s key must be greater than B’s key.  (Because of the way
+that binary search trees are typically diagrammed, the less child is
+commonly called the left child, and the greater child is commonly called
+the right child.)  All nodes in a tree have exactly one parent, except
+for the <em>root</em> node, which has no parent.  Node A is a
+<em>descendant</em> of node C if C is A’s parent, or if A’s parent is a
+descendant of C. If a node is not the root of the entire tree, it is the
+root of a <em>subtree</em> consisting of the node and all its
+descendants.  The <em>less subtree</em> of a node is the subtree whose
+root is the less child of the node. The <em>greater subtree</em> of a
+node is the subtree whose root is the greater child of the node.  The
+<em>depth</em> of a node is one more than the depth of its parent.  The
+depth of the root node is 1.  The depth of a tree is the maximum node
+depth.  The <em>balance factor</em> of a node is the depth of its
+greater subtree minus the depth of its less subtree, with non-existent
+subtrees being considered to have a depth of 0.  In an AVL tree, the
+balance factor of any node can only be -1, 0 or 1.</p>
+<p>There are many open-source C and C++ implementations of AVL Trees
+available.  But as far as I know, this is the only one that manipulates
+the nodes of the tree using abstract “handles” instead of concrete
+pointers.  If all the nodes are in a single array, you can use node
+indexes as handles instead of node pointers.  This approach makes it
+possible to compress the size of the nodes if memory is tight.  Using
+indexes as handles (instead of pointers) can make tree persistence as
+simple as writing the node array out with a single disk write, and
+reading it back in with a single disk read.  The template also allows
+for a tree to be in secondary storage, with nodes being “paged” in and
+out of memory.</p>
+<p>To achieve the desired level of abstraction, the avl_tree template
+uses lots of short inline functions.  Because of this, function inlining
+can significantly improve performance when using the template.  If the
+test suite. test_avl.cpp, is compiled with GNU GCC using level 1
+optimization (-O option), it executes twice as fast as when the test
+suite is compiled without optimization (the default).</p>
+<p>The template code makes no use of recursion.  The implementation is
+stack-friendly in general, except perhaps for the iter class.  Instances
+of iter contain an array of handles whose dimension is the maximum tree
+depth minus one. (Unlike STL map/set, this data structure has “fat”
+interators, too big to pass by value, because it does not have parent
+pointers in each node.)</p>
+<p>Since key comparisons can potentially be complex, the code avoids
+repeated comparisons of the same pair of node key values.</p>
+<p>To avoid clutter, default destructor functions are not
+documented.</p>
+<h1 id="source-files">2  Source Files</h1>
+<p>The source code for the template is in the header file avl_tree.h</p>
+<p>A test suite for the template is in the file test_avl.cpp.</p>
+<p>avl_ex1.cpp shows an example instantiation of the template using
+pointers as handles.</p>
+<p>avl_ex2.cpp shows an example instantiation of the template using
+array indexes as handles.</p>
+<p>All of this code compiles with a contemporary version of GNU GCC, and
+with Visual C++ .NET.</p>
+<h1 id="reference-classes">3  Reference Classes</h1>
+<p>To help describe the constraints on template class/typename
+parameters, or on member types of template class parameters, I like to
+use <em>reference classes</em>.  This doesn’t necessary mean that the
+type being constrained has to use the reference class as its
+definition.  It is only necessary that every possible usage of the
+reference class or one of its instances is also a possible usage of the
+constrained type or one of its instances.  When an identifier with the
+prefix ANY_ is used, this means that all occurrences of that identifier
+should be substituted with the same type (or with types that implicitly
+convert to the substituted type).  Take for example the function
+template:</p>
+<pre><code>template &lt;class A&gt;
+void foo(A &amp;a) { a.x(a.y()); }</code></pre>
+<p>The reference class for the parameter A would be:</p>
+<pre><code>class A
+  {
+  public:
+    void x(ANY_px p);
+    ANY_px y();
+  };</code></pre>
+<p>The following class could be passed as the class A parameter to the
+template:</p>
+<pre><code>struct someA
+  {
+  public:
+    static double x(int aintp);
+    signed char y(bool f = true) const;
+  };</code></pre>
+<p>Since the return type of x() is void in the reference class, it can
+return any type (or be void) in the actual parameter class.  y() can
+return signed char because signed char implicitly converts to int . 
+Member functions can be made static or const because these make the
+usage of a function more, not less, flexible.</p>
+<h1 id="namespace">4  Namespace</h1>
+<p>The avl_tree template is in the abstract_container namespace. The AVL
+Tree header file also defines this enumerated type:</p>
+<pre><code>enum search_type
+  {
+    EQUAL = 1,
+    LESS = 2,
+    GREATER = 4,
+    LESS_EQUAL = EQUAL | LESS,
+    GREATER_EQUAL = EQUAL | GREATER
+  };</code></pre>
+<p>in the abstract_container namespace.</p>
+<h1 id="template-parameters">5  Template Parameters</h1>
+<p>The avl_tree template begins with:</p>
+<pre><code>template &lt;class abstractor, unsigned max_depth = 32&gt;
+class avl_tree ...</code></pre>
+<h2
+id="members-of-reference-class-for-abstractor-template-parameter">5.1 
+Members of Reference Class for abstractor Template Parameter</h2>
+<p>All members of the reference class are public.</p>
+<h3 id="type-handle">5.1.1  Type handle</h3>
+<p>Each node has to be associated with a node handle, which is a unique
+value of the handle type.  Here is the reference class for handle:</p>
+<pre><code>// No default value for handles is assumed by the template.
+class handle
+  {
+  public:
+    handle();
+    handle(handle &amp;h);
+    void operator = (handle &amp;h);
+    bool operator == (handle &amp;h);
+  };</code></pre>
+<h3 id="type-key">5.1.2  Type key</h3>
+<p>Each node has to be associated with a key, which is a unique value of
+the key type.  The difference between a key and a handle is that a node
+can be conveniently “looked up” using its handle, but it can’t be
+conveniently looked up using its key.  In fact, the whole point of this
+template is to make it convenient to look up a node given its key.  Here
+is the reference class for key:</p>
+<pre><code>class key
+  {
+  public:
+    // Only have to copy it.
+    key(key &amp;k);
+  };</code></pre>
+<h3 id="type-size">5.1.3  Type size</h3>
+<p>The type size is an integral type. It must be large enough the hold
+the maximum possible number of nodes in the tree.</p>
+<h3 id="functions-get_less-get_greater">5.1.4  Functions get_less,
+get_greater</h3>
+<pre><code>handle get_less(handle h, bool access = true);
+
+handle get_greater(handle h, bool access = true);</code></pre>
+<p>Return the handle of the less/greater child of the node whose handle
+is h.  If access is true, and the child node is in secondary storage, it
+has to be read into memory.  If access is false, the child node does not
+have to be read into memory.  Ignore the access parameter in your
+implementations of get_less and get_greater if your instantiation makes
+no use of secondary storage.</p>
+<h3 id="functions-set_less-set_greater">5.1.5  Functions set_less,
+set_greater</h3>
+<pre><code>void set_less(handle h, handle lh);
+
+void set_greater(handle h, handle gh);</code></pre>
+<p>Given the handle h of a node, set the handle of the less/greater
+child of the node.</p>
+<h3 id="function-get_balance_factor">5.1.6  Function
+get_balance_factor</h3>
+<pre><code>int get_balance_factor(handle h);</code></pre>
+<p>Return the balance factor of the node whose handle is h.</p>
+<h3 id="function-set_balance_factor">5.1.7  Function
+set_balance_factor</h3>
+<pre><code>void set_balance_factor(handle h, int bf);</code></pre>
+<p>Set the balance factor of the node whose handle is h.  The only
+possible balance factor values are -1, 0 and 1.</p>
+<h3 id="function-compare_key_node">5.1.8  Function compare_key_node</h3>
+<pre><code>int compare_key_node(key k, handle h);</code></pre>
+<p>Compares a key with the key of a node  Returns a negative value if
+the key is less than the node’s key. Returns zero if the key is the same
+as the node’s key.  Returns a positive value if the key is greater than
+the node’s key.</p>
+<h3 id="function-compare_node_node">5.1.9  Function
+compare_node_node</h3>
+<pre><code>int compare_node_node(handle h1, handle h2);</code></pre>
+<p>Compares the keys of two nodes. Returns a negative value if the first
+node’s key is less than the second node’s key  Returns zero if the first
+node’s key is the same as the second node’s key.  Returns a positive
+value if the first node’s key is greater than the second node’s key.</p>
+<h3 id="function-null">5.1.10  Function null</h3>
+<pre><code>handle null();</code></pre>
+<p>Always returns the same, invalid handle value, which is called the
+<em>null value</em>.</p>
+<h3 id="function-read_error">5.1.11  Function read_error  </h3>
+<pre><code>bool read_error();</code></pre>
+<p>Returns true if there was an error reading secondary storage If your
+instantiation of the template makes no use of secondary storage, use
+this definition:</p>
+<pre><code>bool read_error() { return(false); }</code></pre>
+<h3 id="constructor">5.1.12  Constructor</h3>
+<p>At least one public constructor. </p>
+<h2 id="max_depth">5.2  max_depth</h2>
+<p>This is the maximum tree depth for an instance of the instantiated
+class. You almost certainly want to choose the maximum depth based on
+the maximum number of nodes that could possibly be in the tree instance
+at any given time.  To do this, let the maximum depth be M such
+that:</p>
+<p>MN(M) &lt;= maximum number of nodes &lt; MN(M + 1)</p>
+<p>where MN(d) means the minimum number of nodes in an AVL Tree of depth
+d. Here is a table of MN(d) values for d from 2 to 45.</p>
+<pre><code> d  MN(d)
+ =  =====
+ 2  2
+ 3  4
+ 4  7
+ 5  12
+ 6  20
+ 7  33
+ 8  54
+ 9  88
+ 10 143
+ 11 232
+ 12 376
+ 13 609
+ 14 986
+ 15 1,596
+ 16 2,583
+ 17 4,180
+ 18 6,764
+ 19 10,945
+ 20 17,710
+ 21 28,656
+ 22 46,367
+ 23 75,024
+ 24 121,392
+ 25 196,417
+ 26 317,810
+ 27 514,228
+ 28 832,039
+ 29 1,346,268
+ 30 2,178,308
+ 31 3,524,577
+ 32 5,702,886
+ 33 9,227,464
+ 34 14,930,351
+ 35 24,157,816
+ 36 39,088,168
+ 37 63,245,985
+ 38 102,334,154
+ 39 165,580,140
+ 40 267,914,295
+ 41 433,494,436
+ 42 701,408,732
+ 43 1,134,903,169
+ 44 1,836,311,902
+ 45 2,971,215,072</code></pre>
+<p>(In general, MN(d) = MN(d – 1) + MN(d – 2) + 1 .)</p>
+<p>If, in a particular instantiation, the maximum number of nodes in a
+tree instance is 1,000,000, the maximum depth should be 28. You pick 28
+because MN(28) is 832,039, which is less than or equal to 1,000,000, and
+MN(29) is 1,346,268, which is strictly greater than 1,000,000.</p>
+<p>If you insert a node that would cause the tree to grow to a depth
+greater than the maximum you gave, the results are undefined.</p>
+<p>Each increase of 1 in the value of max_depth increases the size of an
+instance of the iter class (see definition below) by sizeof(handle). The
+only other use of max_depth is as the size of bit arrays used at various
+places in the code.  Generally, the number of bytes in a bit array is
+the size rounded up to a multiple of the number of bits in an int, and
+divided by the number of bits in a byte.  All this is a roundabout way
+of saying that, if you don’t use iter instances, you can guiltlessly add
+a big safety margin to the value of max_depth.</p>
+<h1 id="public-members">6  Public Members</h1>
+<h2 id="type-handle-1">6.1  Type handle</h2>
+<p>Same as handle type member of the abstractor parameter class.</p>
+<h2 id="type-key-1">6.2  Type key</h2>
+<p>Same as key type member of the abstractor parameter class.</p>
+<h2 id="type-size-1">6.3  Type size</h2>
+<p>Same as size type member of the abstractor parameter class.</p>
+<h2 id="function-insert">6.4  Function insert</h2>
+<pre><code>handle insert(handle h);</code></pre>
+<p>Insert the node with the given handle into the tree. The node must be
+associated with a key value.  The initial values of the node’s
+less/greater child handles and its balance factor are don’t-cares.  If
+successful, this function returns the handle of the inserted node.  If
+the node to insert has the same key value as a node that’s already in
+the tree, the insertion is not performed, and the handle of the node
+already in the tree is returned.  Returns the null value if there is an
+error reading secondary storage.  Calling this function invalidates all
+currently-existing instances of the iter class (that are iterating over
+this tree).</p>
+<h2 id="function-search">6.5  Function search</h2>
+<pre><code>handle search(key k, search_type st = EQUAL);</code></pre>
+<p>Searches for a particular node in the tree, returning its handle if
+the node is found, and the null value if the node is not found. The node
+to search for depends on the value of the st parameter.</p>
+<pre><code> Value of st    Node to search for
+ ===========    ==================
+ EQUAL          Node whose key is equal to the key k.
+ LESS           Node whose key is the maximum of the keys of all the nodes with keys less than the key k.
+ GREATER        Node whose key is the minimum of the keys of all the nodes with keys greater than the key k.
+ LESS_EQUAL     Node whose key is the maximum of the keys of all the nodes with keys less than or equal to the key k.
+ GREATER_EQUAL  Node whose key is the minimum of the keys of all the nodes with keys greater than or equal to
+                the key k.</code></pre>
+<h2 id="function-search_least">6.6  Function search_least</h2>
+<pre><code>handle search_least();</code></pre>
+<p>Returns the handle of the node whose key is the minimum of the keys
+of all the nodes in the tree.  Returns the null value if the tree is
+empty or an error occurs reading from secondary storage.</p>
+<h2 id="function-search_greatest">6.7  Function search_greatest</h2>
+<pre><code>handle search_greatest();</code></pre>
+<p>Returns the handle of the node whose key is the maximum of the keys
+of all the nodes in the tree.  Returns the null value if the tree is
+empty or an error occurs reading from secondary storage.</p>
+<h2 id="function-remove">6.8  Function remove</h2>
+<pre><code>handle remove(key k);</code></pre>
+<p>Removes the node with the given k from the tree.  Returns the handle
+of the node removed.  Returns the null value if there is no node in the
+tree with the given key, or an error occurs reading from secondary
+storage. Calling this function invalidates all currently-existing
+instances of the iter class (that are iterating over this tree).</p>
+<h2 id="function-purge">6.9  Function purge</h2>
+<pre><code>void purge();</code></pre>
+<p>Removes all nodes from the tree, making it empty.</p>
+<h2 id="function-is_empty">6.10  Function is_empty</h2>
+<pre><code>bool is_empty();</code></pre>
+<p>Returns true if the tree is empty.</p>
+<h2 id="function-read_error-1">6.11  Function read_error</h2>
+<pre><code>void read_error();</code></pre>
+<p>Returns true if an error occurred while reading a node of the tree
+from secondary storage.  When a read error has occurred, the tree is in
+an undefined state.</p>
+<h2 id="constructor-1">6.12  Constructor</h2>
+<pre><code>avl_tree(...);</code></pre>
+<p>Initializes the tree to the empty state. Any parameters are forwarded
+to the abstractor constructor (if using C++11 or later).</p>
+<h2 id="function-template-build">6.13  Function Template build</h2>
+<pre><code>template &lt;typename fwd_iter&gt;
+bool build(fwd_iter p, size num_nodes);</code></pre>
+<p>Builds a tree from an sequence of nodes that are sorted ascendingly
+by their key values.  The number of nodes in the sequence is given by
+num_nodes.  p is a forward iterator that initially refers to the first
+node in the sequence.  Here is the reference class for the fwd_iter:</p>
+<pre><code>class fwd_iter
+  {
+  public:
+    fwd_iter(fwd_iter &amp;);
+    handle operator * ();
+    void operator ++ (int);
+  };</code></pre>
+<p>Any nodes in the tree (prior to calling this function) are purged. 
+The iterator will be incremented one last time when it refers to the
+last node in the sequence.  build() returns false if a read error occurs
+while trying to build the tree.  The time complexity of this function is
+O(n  x  log n), but it is more efficient than inserting the nodes in the
+sequence one at a time, and the resulting tree will generally have
+better balance.</p>
+<h2 id="function-subst">6.14  Function subst</h2>
+<pre><code>handle subst(handle new_node);</code></pre>
+<p>If the node whose handle is passed as new_node has the same key as a
+node that is already in the tree, then the node already in the tree is
+removed from the tree and replaced by the new node.  If there is no node
+in the tree with the same key as the new node, no substitution is made,
+and the null value is returned.  If a substitution is made, the handle
+of the node that was removed from the tree is returned.  The null value
+is returned if a read error occurs. Calling this function invalidates
+all currently-existing iter instances (that are iterating over this
+tree).</p>
+<h2 id="copy-constructor-and-assignment-operator">6.15  Copy Constructor
+and Assignment Operator</h2>
+<p>None, deleted.</p>
+<h2 id="class-iter">6.16  Class iter</h2>
+<p>Instances of this member class are bi-directional iterators over the
+ascendingly sorted (by key) sequence of nodes in a tree.  The
+subsections of this section describe the public members of iter.</p>
+<p>A useful property of this data structure is the ability to do a
+final, destroying iteration over the nodes.  Heap memory or any other
+resources allocated to a node can be freed after the iterator has
+stepped past the node.  See the clear function in example 1 to see how
+this is done.</p>
+<h3 id="parameterless-constructor">6.16.1  Parameterless
+constructor</h3>
+<pre><code>iter();</code></pre>
+<p>Initializes the iterator to the null state.</p>
+<h2 id="function-start_iter">6.16.2  Function start_iter</h2>
+<pre><code>void start_iter(avl_tree &amp;tree, key k, search_type st = EQUAL);</code></pre>
+<p>Causes the iterator to refer to a particular node in the tree that is
+specified as the first parameter.  If the particular node cannot be
+found in the tree, or if a read error occurs, the iterator is put into
+the null state.  The particular node to refer to is determined by the st
+parameter.</p>
+<pre><code> Value of st    Node to refer to
+ ===========    ================
+ EQUAL          Node whose key is equal to the key k.
+ LESS           Node whose key is the maximum of the keys of all the nodes with keys less than the key k.
+ GREATER        Node whose key is the minimum of the keys of all the nodes with keys greater than the key k.
+ LESS_EQUAL     Node whose key is the maximum of the keys of all the nodes with keys less than or equal to the key k.
+ GREATER_EQUAL  Node whose key is the minimum of the keys of all the nodes with keys greater than or equal to
+                the key k.</code></pre>
+<h3 id="function-start_iter_least">6.16.3  Function
+start_iter_least</h3>
+<pre><code>void start_iter_least(avl_tree &amp;tree);</code></pre>
+<p>Cause the iterator to refer to the node with the minimum key in the
+given tree.  Puts the iterator into the null state if the tree is empty
+or a read error occurs.</p>
+<h3 id="function-start_iter_greatest">6.16.4  Function
+start_iter_greatest</h3>
+<pre><code>void start_iter_greatest(avl_tree &amp;tree);</code></pre>
+<p>Cause the iterator to refer to the node with the maximum key in the
+given tree.  Puts the iterator into the null state if the tree is empty
+or a read error occurs.</p>
+<h3 id="operator">6.16.5  operator *</h3>
+<pre><code>handle operator * ();</code></pre>
+<p>Returns the handle of the node that the iterator refers to.  Returns
+the null value if the iterator is in the null state.</p>
+<h3 id="prefix-and-postfix-operator">6.16.6  Prefix and Postfix operator
+++</h3>
+<pre><code>void operator ++ ();
+
+void operator ++ (int);</code></pre>
+<p>Causes the iterator to refer to the node whose key is the next
+highest after the key of the node the iterator currently refers to. 
+Puts the iterator into the null state if the key of the node currently
+referred to is the maximum of the keys of all the nodes in the tree, or
+if a read error occurs.  Has no effect if the iterator is already in the
+null state.</p>
+<h3 id="prefix-and-postfix-operator-1">6.16.7  Prefix and Postfix
+operator –</h3>
+<pre><code>void operator -- ();
+
+void operator -- (int);</code></pre>
+<p>Causes the iterator to refer to the node whose key is the next lowest
+after the key of the node the iterator currently refers to. Puts the
+iterator into the null state if the key of the node currently referred
+to is the minimum of the keys of all the nodes in the tree, or if a read
+error occurs.  Has no effect if the iterator is already in the null
+state.</p>
+<h3 id="function-read_error-2">6.16.8  Function read_error</h3>
+<pre><code>void read_error();</code></pre>
+<p>Returns true if a read error occurred.</p>
+<h3 id="default-copy-constructor-and-assignment-operator">6.16.9 
+Default Copy Constructor and Assignment Operator</h3>
+<p>These member functions exist and can be safely used.</p>
+<h1 id="protected-members">7  Protected Members</h1>
+<h2 id="variable-abs">7.1  Variable abs</h2>
+<pre><code>struct abs_plus_root : public abstractor
+  {
+    handle root;
+
+    #if __cplusplus &gt;= 201100
+    template&lt;typename ... args_t&gt;
+    abs_plus_root(args_t &amp;&amp; ... args) : abstractor(std::forward&lt;args_t&gt;(args)...) { }
+    #endif
+  };
+
+abs_plus_root abs;</code></pre>
+<p>abs is an instance of the abstractor template class parameter, and
+also contains the handle of the root node of the AVL tree (or the null
+value if the tree is empty). In C++11 or later, the parameters to the
+abstractor constructor are forwarded from the avl_tree constructor.
+Otherwise, the abstractor constructor (like the avl_tree constructor)
+must be parameterless.</p>
+<p>The sole purpose of combining the abstractor instance and the root
+handle into a single structure is to take advantage of the so-called
+“empty member” optimization.  If a class has no data members or base
+classes, the ISO C++ Standard allows instances of the class to have zero
+size if and only if they are sub-instances of an instance of a (derived)
+class.  Since there are many situation where the abstractor class would
+not need to have data members, it’s desirable for the template to take
+advantage of this (potential) optimization.</p>
+<p>It’s interesting (well, to me, anyway) to note that in the C AVL tree
+implementation, it’s much more straight-forward to avoid “padding” tree
+instances when the instantiation requires no per-tree-instance data
+(other than the root handle).  (More straight-forward in the sense that
+you don’t need to use some weird special clause in the language
+definition.  But I think this is the only case where the C
+implementation seems to have an advantage over the C++
+implementation.</p>
+<h2 id="other-protected-members">7.2  Other Protected Members</h2>
+<p>The other protected members are most easily understood by reading the
+source code.</p>
+<h1 id="version-history">8  Version History</h1>
+<p>Version 1.0</p>
+<ul>
+<li>Initial version.</li>
+</ul>
+<p>Version 1.1</p>
+<ul>
+<li><p>Fixed bugs in the handling of read errors.</p></li>
+<li><p>Minor changes to documentation.</p></li>
+</ul>
+<p>Version 1.2</p>
+<ul>
+<li>Changes to document final, destructing iteration.</li>
+</ul>
+<p>Version 1.3</p>
+<ul>
+<li><p>Improvements to code in example 1 showing final destructing
+iteration.</p></li>
+<li><p>Minor corrections and improvements to external
+documentation.</p></li>
+</ul>
+<p>Version 1.4</p>
+<ul>
+<li><p>Added missing usage of <em>typename</em> reserve word at various
+places.</p></li>
+<li><p>Added usage of the “empty member” optimization.</p></li>
+<li><p>Cosmetic changes.</p></li>
+</ul>
+<p>Version 1.5</p>
+<ul>
+<li>Added subst member function.</li>
+</ul>
+<p>Version 1.6</p>
+<ul>
+<li><p>Fixed various warnings.</p></li>
+<li><p>Changed documentation to ODT format, fixes some URIs.</p></li>
+<li><p>Added condition-free MIT license.</p></li>
+</ul>
+<p>Version 1.7</p>
+<ul>
+<li>Using C++11 variadic template constructors and parameter pack
+forwarding, allow abstractor constructors to have arbitrary parameter
+lists.</li>
+</ul>
