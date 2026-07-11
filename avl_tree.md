@@ -400,7 +400,8 @@ handle remove_search(key k, remove_aux &aux);
 
 Finds the node with the given key k in the tree.  Returns the handle of the matching node, or null if no node
 in the tree has the given key.  If there is a matching node, aux will contain the information (besides the handle)
-that remove_after_search() needs to remove the node.
+that remove_after_search() needs to remove the node.  If nodes are inserted or removed after calling this function,
+before the follow-on call to remove_after_search(), the data in the aux parameter will become invalid.
 
 ## 6.11  Function remove_after_search
 ```
