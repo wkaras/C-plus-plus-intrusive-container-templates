@@ -155,35 +155,35 @@ class base_hash_table : public abstractor
       {
       public:
 
-	void start_iter(base_hash_table &ht_)
-	  {
-	    ht = &ht_;
+        void start_iter(base_hash_table &ht_)
+          {
+            ht = &ht_;
 
             hv = index(0) - 1;
             curr_h = base_hash_table::null();
 
             advance();
-	  }
+          }
 
         iter(base_hash_table &ht_) { start_iter(ht_); }
 
         // Returns handle of element currently referenced by iterator, or
         // null() if the iterator is past the last element (if any).
         //
-	handle operator * () { return(curr_h); }
+        handle operator * () { return(curr_h); }
 
-	operator bool () { return(curr_h != base_hash_table::null()); }
+        operator bool () { return(curr_h != base_hash_table::null()); }
 
-	base_hash_table & table() { return(*ht); }
+        base_hash_table & table() { return(*ht); }
 
-	void operator ++ () { advance(); }
+        void operator ++ () { advance(); }
 
-	void operator ++ (int) { ++(*this); }
+        void operator ++ (int) { ++(*this); }
 
       protected:
 
-	// Hash table being iterated over.
-	base_hash_table *ht;
+        // Hash table being iterated over.
+        base_hash_table *ht;
 
         // Hash value, current bucket.
         index hv;

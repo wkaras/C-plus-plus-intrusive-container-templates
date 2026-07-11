@@ -148,392 +148,392 @@ class base_avl_tree
       {
       public:
 
-	// NOTE:  GCC allows these member functions to be defined as
-	// explicitly inline outside the class, but Visual C++ .NET does
-	// not.
+        // NOTE:  GCC allows these member functions to be defined as
+        // explicitly inline outside the class, but Visual C++ .NET does
+        // not.
 
-	// Initialize depth to invalid value, to indicate iterator is
-	// invalid.   (Depth is zero-base.)
-	#if __cplusplus >= 201100
-	constexpr
+        // Initialize depth to invalid value, to indicate iterator is
+        // invalid.   (Depth is zero-base.)
+        #if __cplusplus >= 201100
+        constexpr
         #endif
-	iter() : depth(unsigned(~0)) { }
+        iter() : depth(unsigned(~0)) { }
 
-	void start_iter(base_avl_tree &tree, key k, search_type st = EQUAL)
-	  {
-	    // Mask of high bit in an int.
-	    const int MASK_HIGH_BIT = (int) ~ ((~ (unsigned) 0) >> 1);
+        void start_iter(base_avl_tree &tree, key k, search_type st = EQUAL)
+          {
+            // Mask of high bit in an int.
+            const int MASK_HIGH_BIT = (int) ~ ((~ (unsigned) 0) >> 1);
 
-	    // Save the tree that we're going to iterate through in a
-	    // member variable.
-	    tree_ = &tree;
+            // Save the tree that we're going to iterate through in a
+            // member variable.
+            tree_ = &tree;
 
-	    int cmp, target_cmp;
-	    handle h = tree_->abs.root;
-	    unsigned d = 0;
+            int cmp, target_cmp;
+            handle h = tree_->abs.root;
+            unsigned d = 0;
 
-	    depth = unsigned(~0);
+            depth = unsigned(~0);
 
-	    if (h == null())
-	      // Tree is empty.
-	      return;
+            if (h == null())
+              // Tree is empty.
+              return;
 
-	    if (st & LESS)
-	      // Key can be greater than key of starting node.
-	      target_cmp = 1;
-	    else if (st & GREATER)
-	      // Key can be less than key of starting node.
-	      target_cmp = -1;
-	    else
-	      // Key must be same as key of starting node.
-	      target_cmp = 0;
+            if (st & LESS)
+              // Key can be greater than key of starting node.
+              target_cmp = 1;
+            else if (st & GREATER)
+              // Key can be less than key of starting node.
+              target_cmp = -1;
+            else
+              // Key must be same as key of starting node.
+              target_cmp = 0;
 
-	    for ( ; ; )
-	      {
-		cmp = cmp_k_n(k, h);
-		if (cmp == 0)
-		  {
-		    if (st & EQUAL)
-		      {
-			// Equal node was sought and found as starting node.
-			depth = d;
-			break;
-		      }
-		    cmp = -target_cmp;
-		  }
-		else if (target_cmp != 0)
-		  if (!((cmp ^ target_cmp) & MASK_HIGH_BIT))
-		    // cmp and target_cmp are both negative or both positive.
-		    depth = d;
-		h = cmp < 0 ? get_lt(h) : get_gt(h);
-		if (read_error())
-		  {
-		    depth = unsigned(~0);
-		    break;
-		  }
-		if (h == null())
-		  break;
-		branch[d] = cmp > 0;
-		path_h[d++] = h;
-	      }
-	  }
+            for ( ; ; )
+              {
+                cmp = cmp_k_n(k, h);
+                if (cmp == 0)
+                  {
+                    if (st & EQUAL)
+                      {
+                        // Equal node was sought and found as starting node.
+                        depth = d;
+                        break;
+                      }
+                    cmp = -target_cmp;
+                  }
+                else if (target_cmp != 0)
+                  if (!((cmp ^ target_cmp) & MASK_HIGH_BIT))
+                    // cmp and target_cmp are both negative or both positive.
+                    depth = d;
+                h = cmp < 0 ? get_lt(h) : get_gt(h);
+                if (read_error())
+                  {
+                    depth = unsigned(~0);
+                    break;
+                  }
+                if (h == null())
+                  break;
+                branch[d] = cmp > 0;
+                path_h[d++] = h;
+              }
+          }
 
-	void start_iter_least(base_avl_tree &tree)
-	  {
-	    tree_ = &tree;
+        void start_iter_least(base_avl_tree &tree)
+          {
+            tree_ = &tree;
 
-	    handle h = tree_->abs.root;
+            handle h = tree_->abs.root;
 
-	    depth = unsigned(~0);
+            depth = unsigned(~0);
 
-	    branch.reset();
+            branch.reset();
 
-	    while (h != null())
-	      {
-		if (depth != unsigned(~0))
-		  path_h[depth] = h;
-		depth++;
-		h = get_lt(h);
-		if (read_error())
-		  {
-		    depth = unsigned(~0);
-		    break;
-		  }
-	      }
-	  }
+            while (h != null())
+              {
+                if (depth != unsigned(~0))
+                  path_h[depth] = h;
+                depth++;
+                h = get_lt(h);
+                if (read_error())
+                  {
+                    depth = unsigned(~0);
+                    break;
+                  }
+              }
+          }
 
-	void start_iter_greatest(base_avl_tree &tree)
-	  {
-	    tree_ = &tree;
+        void start_iter_greatest(base_avl_tree &tree)
+          {
+            tree_ = &tree;
 
-	    handle h = tree_->abs.root;
+            handle h = tree_->abs.root;
 
-	    depth = unsigned(~0);
+            depth = unsigned(~0);
 
-	    branch.set();
+            branch.set();
 
-	    while (h != null())
-	      {
-		if (depth != unsigned(~0))
-		  path_h[depth] = h;
-		depth++;
-		h = get_gt(h);
-		if (read_error())
-		  {
-		    depth = unsigned(~0);
-		    break;
-		  }
-	      }
-	  }
+            while (h != null())
+              {
+                if (depth != unsigned(~0))
+                  path_h[depth] = h;
+                depth++;
+                h = get_gt(h);
+                if (read_error())
+                  {
+                    depth = unsigned(~0);
+                    break;
+                  }
+              }
+          }
 
-	handle operator * ()
-	  {
-	    if (depth == unsigned(~0))
-	      return(null());
+        handle operator * ()
+          {
+            if (depth == unsigned(~0))
+              return(null());
 
-	    return(depth == 0 ? tree_->abs.root : path_h[depth - 1]);
-	  }
+            return(depth == 0 ? tree_->abs.root : path_h[depth - 1]);
+          }
 
-	void operator ++ ()
-	  {
-	    if (depth != unsigned(~0))
-	      {
-		handle h = get_gt(**this);
-		if (read_error())
-		  depth = unsigned(~0);
-		else if (h == null())
-		  do
-		    {
-		      if (depth == 0)
-			{
-			  depth = unsigned(~0);
-			  break;
-			}
-		      depth--;
-		    }
-		  while (branch[depth]);
-		else
-		  {
-		    branch[depth] = true;
-		    path_h[depth++] = h;
-		    for ( ; ; )
-		      {
-			h = get_lt(h);
-			if (read_error())
-			  {
-			    depth = unsigned(~0);
-			    break;
-			  }
-			if (h == null())
-			  break;
-			branch[depth] = false;
-			path_h[depth++] = h;
-		      }
-		  }
-	      }
-	  }
+        void operator ++ ()
+          {
+            if (depth != unsigned(~0))
+              {
+                handle h = get_gt(**this);
+                if (read_error())
+                  depth = unsigned(~0);
+                else if (h == null())
+                  do
+                    {
+                      if (depth == 0)
+                        {
+                          depth = unsigned(~0);
+                          break;
+                        }
+                      depth--;
+                    }
+                  while (branch[depth]);
+                else
+                  {
+                    branch[depth] = true;
+                    path_h[depth++] = h;
+                    for ( ; ; )
+                      {
+                        h = get_lt(h);
+                        if (read_error())
+                          {
+                            depth = unsigned(~0);
+                            break;
+                          }
+                        if (h == null())
+                          break;
+                        branch[depth] = false;
+                        path_h[depth++] = h;
+                      }
+                  }
+              }
+          }
 
-	void operator -- ()
-	  {
-	    if (depth != unsigned(~0))
-	      {
-		handle h = get_lt(**this);
-		if (read_error())
-		  depth = unsigned(~0);
-		else if (h == null())
-		  do
-		    {
-		      if (depth == 0)
-			{
-			  depth = unsigned(~0);
-			  break;
-			}
-		      depth--;
-		    }
-		  while (!branch[depth]);
-		else
-		  {
-		    branch[depth] = false;
-		    path_h[depth++] = h;
-		    for ( ; ; )
-		      {
-			h = get_gt(h);
-			if (read_error())
-			  {
-			    depth = unsigned(~0);
-			    break;
-			  }
-			if (h == null())
-			  break;
-			branch[depth] = true;
-			path_h[depth++] = h;
-		      }
-		  }
-	      }
-	  }
+        void operator -- ()
+          {
+            if (depth != unsigned(~0))
+              {
+                handle h = get_lt(**this);
+                if (read_error())
+                  depth = unsigned(~0);
+                else if (h == null())
+                  do
+                    {
+                      if (depth == 0)
+                        {
+                          depth = unsigned(~0);
+                          break;
+                        }
+                      depth--;
+                    }
+                  while (!branch[depth]);
+                else
+                  {
+                    branch[depth] = false;
+                    path_h[depth++] = h;
+                    for ( ; ; )
+                      {
+                        h = get_gt(h);
+                        if (read_error())
+                          {
+                            depth = unsigned(~0);
+                            break;
+                          }
+                        if (h == null())
+                          break;
+                        branch[depth] = true;
+                        path_h[depth++] = h;
+                      }
+                  }
+              }
+          }
 
-	void operator ++ (int) { ++(*this); }
+        void operator ++ (int) { ++(*this); }
 
-	void operator -- (int) { --(*this); }
+        void operator -- (int) { --(*this); }
 
-	bool read_error() { return(tree_->read_error()); }
+        bool read_error() { return(tree_->read_error()); }
 
       protected:
 
-	// Tree being iterated over.
-	base_avl_tree *tree_;
+        // Tree being iterated over.
+        base_avl_tree *tree_;
 
-	// Records a path into the tree.  If branch[n] is true, indicates
-	// take greater branch from the nth node in the path, otherwise
-	// take the less branch.  branch[0] gives branch from root, and
-	// so on.
-	bset branch;
+        // Records a path into the tree.  If branch[n] is true, indicates
+        // take greater branch from the nth node in the path, otherwise
+        // take the less branch.  branch[0] gives branch from root, and
+        // so on.
+        bset branch;
 
-	// Zero-based depth of path into tree.
-	unsigned depth;
+        // Zero-based depth of path into tree.
+        unsigned depth;
 
-	// Handles of nodes in path from root to current node (returned by *).
-	handle path_h[max_depth - 1];
+        // Handles of nodes in path from root to current node (returned by *).
+        handle path_h[max_depth - 1];
 
-	int cmp_k_n(key k, handle h)
-	  { return(tree_->abs.compare_key_node(k, h)); }
-	int cmp_n_n(handle h1, handle h2)
-	  { return(tree_->abs.compare_node_node(h1, h2)); }
-	handle get_lt(handle h)
-	  { return(tree_->abs.get_less(h, true)); }
-	handle get_gt(handle h)
-	  { return(tree_->abs.get_greater(h, true)); }
-	handle null() { return(tree_->abs.null()); }
+        int cmp_k_n(key k, handle h)
+          { return(tree_->abs.compare_key_node(k, h)); }
+        int cmp_n_n(handle h1, handle h2)
+          { return(tree_->abs.compare_node_node(h1, h2)); }
+        handle get_lt(handle h)
+          { return(tree_->abs.get_less(h, true)); }
+        handle get_gt(handle h)
+          { return(tree_->abs.get_greater(h, true)); }
+        handle null() { return(tree_->abs.null()); }
 
       };
 
     template<typename fwd_iter>
     bool build(fwd_iter p, size num_nodes)
       {
-	// NOTE:  GCC allows me to define this outside the class definition
-	// using the following syntax:
-	//
-	// template <class abstractor, unsigned max_depth, class bset>
-	// template<typename fwd_iter>
-	// inline void base_avl_tree<abstractor, max_depth, bset>::build(
-	//   fwd_iter p, size num_nodes)
-	//   {
-	//     ...
-	//   }
-	//
-	// but Visual C++ .NET won't accept it.  Is this a GCC extension?
+        // NOTE:  GCC allows me to define this outside the class definition
+        // using the following syntax:
+        //
+        // template <class abstractor, unsigned max_depth, class bset>
+        // template<typename fwd_iter>
+        // inline void base_avl_tree<abstractor, max_depth, bset>::build(
+        //   fwd_iter p, size num_nodes)
+        //   {
+        //     ...
+        //   }
+        //
+        // but Visual C++ .NET won't accept it.  Is this a GCC extension?
 
-	if (num_nodes == 0)
-	  {
-	    abs.root = null();
-	    return(true);
-	  }
+        if (num_nodes == 0)
+          {
+            abs.root = null();
+            return(true);
+          }
 
-	// Gives path to subtree being built.  If branch[N] is false, branch
-	// less from the node at depth N, if true branch greater.
-	bset branch;
+        // Gives path to subtree being built.  If branch[N] is false, branch
+        // less from the node at depth N, if true branch greater.
+        bset branch;
 
-	// If rem[N] is true, then for the current subtree at depth N, it's
-	// greater subtree has one more node than it's less subtree.
-	bset rem;
+        // If rem[N] is true, then for the current subtree at depth N, it's
+        // greater subtree has one more node than it's less subtree.
+        bset rem;
 
         // Depth of root node of current subtree.
-	unsigned depth = 0;
+        unsigned depth = 0;
 
         // Number of nodes in current subtree.
-	size num_sub = num_nodes;
+        size num_sub = num_nodes;
 
-	// The algorithm relies on a stack of nodes whose less subtree has
-	// been built, but whose right subtree has not yet been built.  The
-	// stack is implemented as linked list.  The nodes are linked
-	// together by having the "greater" handle of a node set to the
-	// next node in the list.  "less_parent" is the handle of the first
-	// node in the list.
-	handle less_parent = null();
+        // The algorithm relies on a stack of nodes whose less subtree has
+        // been built, but whose right subtree has not yet been built.  The
+        // stack is implemented as linked list.  The nodes are linked
+        // together by having the "greater" handle of a node set to the
+        // next node in the list.  "less_parent" is the handle of the first
+        // node in the list.
+        handle less_parent = null();
 
-	// h is root of current subtree, child is one of its children.
-	handle h, child;
+        // h is root of current subtree, child is one of its children.
+        handle h, child;
 
-	for ( ; ; )
-	  {
-	    while (num_sub > 2)
-	      {
-		// Subtract one for root of subtree.
-		num_sub--;
-		rem[depth] = !!(num_sub & 1);
-		branch[depth++] = false;
-		num_sub >>= 1;
-	      }
+        for ( ; ; )
+          {
+            while (num_sub > 2)
+              {
+                // Subtract one for root of subtree.
+                num_sub--;
+                rem[depth] = !!(num_sub & 1);
+                branch[depth++] = false;
+                num_sub >>= 1;
+              }
 
-	    if (num_sub == 2)
-	      {
-		// Build a subtree with two nodes, slanting to greater.
-		// I arbitrarily chose to always have the extra node in the
-		// greater subtree when there is an odd number of nodes to
-		// split between the two subtrees.
+            if (num_sub == 2)
+              {
+                // Build a subtree with two nodes, slanting to greater.
+                // I arbitrarily chose to always have the extra node in the
+                // greater subtree when there is an odd number of nodes to
+                // split between the two subtrees.
 
-		h = *p;
-		if (read_error())
-		  return(false);
-		p++;
-		child = *p;
-		if (read_error())
-		  return(false);
-		p++;
-		set_lt(child, null());
-		set_gt(child, null());
-		set_bf(child, 0);
-		set_gt(h, child);
-		set_lt(h, null());
-		set_bf(h, 1);
-	      }
-	    else  // num_sub == 1
-	      {
-		// Build a subtree with one node.
+                h = *p;
+                if (read_error())
+                  return(false);
+                p++;
+                child = *p;
+                if (read_error())
+                  return(false);
+                p++;
+                set_lt(child, null());
+                set_gt(child, null());
+                set_bf(child, 0);
+                set_gt(h, child);
+                set_lt(h, null());
+                set_bf(h, 1);
+              }
+            else  // num_sub == 1
+              {
+                // Build a subtree with one node.
 
-		h = *p;
-		if (read_error())
-		  return(false);
-		p++;
-		set_lt(h, null());
-		set_gt(h, null());
-		set_bf(h, 0);
-	      }
+                h = *p;
+                if (read_error())
+                  return(false);
+                p++;
+                set_lt(h, null());
+                set_gt(h, null());
+                set_bf(h, 0);
+              }
 
-	    while (depth)
-	      {
-		depth--;
-		if (!branch[depth])
-		  // We've completed a less subtree.
-		  break;
+            while (depth)
+              {
+                depth--;
+                if (!branch[depth])
+                  // We've completed a less subtree.
+                  break;
 
-		// We've completed a greater subtree, so attach it to
-		// its parent (that is less than it).  We pop the parent
-		// off the stack of less parents.
-		child = h;
-		h = less_parent;
-		less_parent = get_gt(h);
-		if (read_error())
-		  return(false);
-		set_gt(h, child);
-		// num_sub = 2 * (num_sub - rem[depth]) + rem[depth] + 1
-		num_sub <<= 1;
-		num_sub += 1 - rem[depth];
-		if (num_sub & (num_sub - 1))
-		  // num_sub is not a power of 2
-		  set_bf(h, 0);
-		else
-		  // num_sub is a power of 2
-		  set_bf(h, 1);
-	      }
+                // We've completed a greater subtree, so attach it to
+                // its parent (that is less than it).  We pop the parent
+                // off the stack of less parents.
+                child = h;
+                h = less_parent;
+                less_parent = get_gt(h);
+                if (read_error())
+                  return(false);
+                set_gt(h, child);
+                // num_sub = 2 * (num_sub - rem[depth]) + rem[depth] + 1
+                num_sub <<= 1;
+                num_sub += 1 - rem[depth];
+                if (num_sub & (num_sub - 1))
+                  // num_sub is not a power of 2
+                  set_bf(h, 0);
+                else
+                  // num_sub is a power of 2
+                  set_bf(h, 1);
+              }
 
-	    if (num_sub == num_nodes)
-	      // We've completed the full tree.
-	      break;
+            if (num_sub == num_nodes)
+              // We've completed the full tree.
+              break;
 
-	    // The subtree we've completed is the less subtree of the
-	    // next node in the sequence.
+            // The subtree we've completed is the less subtree of the
+            // next node in the sequence.
 
-	    child = h;
-	    h = *p;
-	    if (read_error())
-	      return(false);
-	    p++;
-	    set_lt(h, child);
+            child = h;
+            h = *p;
+            if (read_error())
+              return(false);
+            p++;
+            set_lt(h, child);
 
-	    // Put h into stack of less parents.
-	    set_gt(h, less_parent);
-	    less_parent = h;
+            // Put h into stack of less parents.
+            set_gt(h, less_parent);
+            less_parent = h;
 
-	    // Proceed to creating greater than subtree of h.
-	    branch[depth] = true;
-	    num_sub += rem[depth++];
+            // Proceed to creating greater than subtree of h.
+            branch[depth] = true;
+            num_sub += rem[depth++];
 
-	  } // end for ( ; ; )
+          } // end for ( ; ; )
 
-	abs.root = h;
+        abs.root = h;
 
-	return(true);
+        return(true);
       }
 
   protected:
@@ -544,8 +544,8 @@ class base_avl_tree
     // the "empty member" optimization.
     struct abs_plus_root : public abstractor
       {
-	// The handle of the root element in the AVL tree.
-	handle root;
+        // The handle of the root element in the AVL tree.
+        handle root;
 
         #if __cplusplus >= 201100
         template<typename ... args_t>
@@ -578,128 +578,128 @@ class base_avl_tree
     // after balancing.
     handle balance(handle bal_h)
       {
-	handle deep_h;
+        handle deep_h;
 
-	// Either the "greater than" or the "less than" subtree of
-	// this node has to be 2 levels deeper (or else it wouldn't
-	// need balancing).
+        // Either the "greater than" or the "less than" subtree of
+        // this node has to be 2 levels deeper (or else it wouldn't
+        // need balancing).
 
-	if (get_bf(bal_h) > 0)
-	  {
-	    // "Greater than" subtree is deeper.
+        if (get_bf(bal_h) > 0)
+          {
+            // "Greater than" subtree is deeper.
 
-	    deep_h = get_gt(bal_h);
-	    if (read_error())
-	      return(null());
+            deep_h = get_gt(bal_h);
+            if (read_error())
+              return(null());
 
-	    if (get_bf(deep_h) < 0)
-	      {
-		handle old_h = bal_h;
-		bal_h = get_lt(deep_h);
-		if (read_error())
-		  return(null());
-		set_gt(old_h, get_lt(bal_h, false));
-		set_lt(deep_h, get_gt(bal_h, false));
-		set_lt(bal_h, old_h);
-		set_gt(bal_h, deep_h);
+            if (get_bf(deep_h) < 0)
+              {
+                handle old_h = bal_h;
+                bal_h = get_lt(deep_h);
+                if (read_error())
+                  return(null());
+                set_gt(old_h, get_lt(bal_h, false));
+                set_lt(deep_h, get_gt(bal_h, false));
+                set_lt(bal_h, old_h);
+                set_gt(bal_h, deep_h);
 
-		int bf = get_bf(bal_h);
-		if (bf != 0)
-		  {
-		    if (bf > 0)
-		      {
-			set_bf(old_h, -1);
-			set_bf(deep_h, 0);
-		      }
-		    else
-		      {
-			set_bf(deep_h, 1);
-			set_bf(old_h, 0);
-		      }
-		    set_bf(bal_h, 0);
-		  }
-		else
-		  {
-		    set_bf(old_h, 0);
-		    set_bf(deep_h, 0);
-		  }
-	      }
-	    else
-	      {
-		set_gt(bal_h, get_lt(deep_h, false));
-		set_lt(deep_h, bal_h);
-		if (get_bf(deep_h) == 0)
-		  {
-		    set_bf(deep_h, -1);
-		    set_bf(bal_h, 1);
-		  }
-		else
-		  {
-		    set_bf(deep_h, 0);
-		    set_bf(bal_h, 0);
-		  }
-		bal_h = deep_h;
-	      }
-	  }
-	else
-	  {
-	    // "Less than" subtree is deeper.
+                int bf = get_bf(bal_h);
+                if (bf != 0)
+                  {
+                    if (bf > 0)
+                      {
+                        set_bf(old_h, -1);
+                        set_bf(deep_h, 0);
+                      }
+                    else
+                      {
+                        set_bf(deep_h, 1);
+                        set_bf(old_h, 0);
+                      }
+                    set_bf(bal_h, 0);
+                  }
+                else
+                  {
+                    set_bf(old_h, 0);
+                    set_bf(deep_h, 0);
+                  }
+              }
+            else
+              {
+                set_gt(bal_h, get_lt(deep_h, false));
+                set_lt(deep_h, bal_h);
+                if (get_bf(deep_h) == 0)
+                  {
+                    set_bf(deep_h, -1);
+                    set_bf(bal_h, 1);
+                  }
+                else
+                  {
+                    set_bf(deep_h, 0);
+                    set_bf(bal_h, 0);
+                  }
+                bal_h = deep_h;
+              }
+          }
+        else
+          {
+            // "Less than" subtree is deeper.
 
-	    deep_h = get_lt(bal_h);
-	    if (read_error())
-	      return(null());
+            deep_h = get_lt(bal_h);
+            if (read_error())
+              return(null());
 
-	    if (get_bf(deep_h) > 0)
-	      {
-		handle old_h = bal_h;
-		bal_h = get_gt(deep_h);
-		if (read_error())
-		  return(null());
-		set_lt(old_h, get_gt(bal_h, false));
-		set_gt(deep_h, get_lt(bal_h, false));
-		set_gt(bal_h, old_h);
-		set_lt(bal_h, deep_h);
+            if (get_bf(deep_h) > 0)
+              {
+                handle old_h = bal_h;
+                bal_h = get_gt(deep_h);
+                if (read_error())
+                  return(null());
+                set_lt(old_h, get_gt(bal_h, false));
+                set_gt(deep_h, get_lt(bal_h, false));
+                set_gt(bal_h, old_h);
+                set_lt(bal_h, deep_h);
 
-		int bf = get_bf(bal_h);
-		if (bf != 0)
-		  {
-		    if (bf < 0)
-		      {
-			set_bf(old_h, 1);
-			set_bf(deep_h, 0);
-		      }
-		    else
-		      {
-			set_bf(deep_h, -1);
-			set_bf(old_h, 0);
-		      }
-		    set_bf(bal_h, 0);
-		  }
-		else
-		  {
-		    set_bf(old_h, 0);
-		    set_bf(deep_h, 0);
-		  }
-	      }
-	    else
-	      {
-		set_lt(bal_h, get_gt(deep_h, false));
-		set_gt(deep_h, bal_h);
-		if (get_bf(deep_h) == 0)
-		  {
-		    set_bf(deep_h, 1);
-		    set_bf(bal_h, -1);
-		  }
-		else
-		  {
-		    set_bf(deep_h, 0);
-		    set_bf(bal_h, 0);
-		  }
-		bal_h = deep_h;
-	      }
-	  }
+                int bf = get_bf(bal_h);
+                if (bf != 0)
+                  {
+                    if (bf < 0)
+                      {
+                        set_bf(old_h, 1);
+                        set_bf(deep_h, 0);
+                      }
+                    else
+                      {
+                        set_bf(deep_h, -1);
+                        set_bf(old_h, 0);
+                      }
+                    set_bf(bal_h, 0);
+                  }
+                else
+                  {
+                    set_bf(old_h, 0);
+                    set_bf(deep_h, 0);
+                  }
+              }
+            else
+              {
+                set_lt(bal_h, get_gt(deep_h, false));
+                set_gt(deep_h, bal_h);
+                if (get_bf(deep_h) == 0)
+                  {
+                    set_bf(deep_h, 1);
+                    set_bf(bal_h, -1);
+                  }
+                else
+                  {
+                    set_bf(deep_h, 0);
+                    set_bf(bal_h, 0);
+                  }
+                bal_h = deep_h;
+              }
+          }
 
-	return(bal_h);
+        return(bal_h);
       }
 
   };
@@ -716,110 +716,110 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
       abs.root = h;
     else
       {
-	// Last unbalanced node encountered in search for insertion point.
-	handle unbal = null();
-	// Parent of last unbalanced node.
-	handle parent_unbal = null();
-	// Balance factor of last unbalanced node.
-	int unbal_bf;
+        // Last unbalanced node encountered in search for insertion point.
+        handle unbal = null();
+        // Parent of last unbalanced node.
+        handle parent_unbal = null();
+        // Balance factor of last unbalanced node.
+        int unbal_bf;
 
-	// Zero-based depth in tree.
-	unsigned depth = 0, unbal_depth = 0;
+        // Zero-based depth in tree.
+        unsigned depth = 0, unbal_depth = 0;
 
-	// Records a path into the tree.  If branch[n] is true, indicates
-	// take greater branch from the nth node in the path, otherwise
-	// take the less branch.  branch[0] gives branch from root, and
-	// so on.
-	bset branch;
+        // Records a path into the tree.  If branch[n] is true, indicates
+        // take greater branch from the nth node in the path, otherwise
+        // take the less branch.  branch[0] gives branch from root, and
+        // so on.
+        bset branch;
 
-	handle hh = abs.root;
-	handle parent = null();
-	int cmp;
+        handle hh = abs.root;
+        handle parent = null();
+        int cmp;
 
-	do
- 	  {
-	    if (get_bf(hh) != 0)
-	      {
-		unbal = hh;
-		parent_unbal = parent;
-		unbal_depth = depth;
-	      }
-	    cmp = cmp_n_n(h, hh);
-	    if (cmp == 0)
-	      // Duplicate key.
-	      return(hh);
-	    parent = hh;
-	    hh = cmp < 0 ? get_lt(hh) : get_gt(hh);
-	    if (read_error())
-	      return(null());
-	    branch[depth++] = cmp > 0;
-	  }
-	while (hh != null());
+        do
+          {
+            if (get_bf(hh) != 0)
+              {
+                unbal = hh;
+                parent_unbal = parent;
+                unbal_depth = depth;
+              }
+            cmp = cmp_n_n(h, hh);
+            if (cmp == 0)
+              // Duplicate key.
+              return(hh);
+            parent = hh;
+            hh = cmp < 0 ? get_lt(hh) : get_gt(hh);
+            if (read_error())
+              return(null());
+            branch[depth++] = cmp > 0;
+          }
+        while (hh != null());
 
-	//  Add node to insert as leaf of tree.
-	if (cmp < 0)
-	  set_lt(parent, h);
-	else
-	  set_gt(parent, h);
+        //  Add node to insert as leaf of tree.
+        if (cmp < 0)
+          set_lt(parent, h);
+        else
+          set_gt(parent, h);
 
-	depth = unbal_depth;
+        depth = unbal_depth;
 
-	if (unbal == null())
-	  hh = abs.root;
-	else
-	  {
-	    cmp = branch[depth++] ? 1 : -1;
-	    unbal_bf = get_bf(unbal);
-	    if (cmp < 0)
-	      unbal_bf--;
-	    else  // cmp > 0
-	      unbal_bf++;
-	    hh = cmp < 0 ? get_lt(unbal) : get_gt(unbal);
-	    if (read_error())
-	      return(null());
-	    if ((unbal_bf != -2) && (unbal_bf != 2))
-	      {
-		// No rebalancing of tree is necessary.
-		set_bf(unbal, unbal_bf);
-		unbal = null();
-	      }
-	  }
+        if (unbal == null())
+          hh = abs.root;
+        else
+          {
+            cmp = branch[depth++] ? 1 : -1;
+            unbal_bf = get_bf(unbal);
+            if (cmp < 0)
+              unbal_bf--;
+            else  // cmp > 0
+              unbal_bf++;
+            hh = cmp < 0 ? get_lt(unbal) : get_gt(unbal);
+            if (read_error())
+              return(null());
+            if ((unbal_bf != -2) && (unbal_bf != 2))
+              {
+                // No rebalancing of tree is necessary.
+                set_bf(unbal, unbal_bf);
+                unbal = null();
+              }
+          }
 
-	if (hh != null())
-	  while (h != hh)
-	    {
-	      cmp = branch[depth++] ? 1 : -1;
-	      if (cmp < 0)
-		{
-		  set_bf(hh, -1);
-		  hh = get_lt(hh);
-		}
-	      else // cmp > 0
-		{
-		  set_bf(hh, 1);
-		  hh = get_gt(hh);
-		}
-	      if (read_error())
-		return(null());
-	    }
+        if (hh != null())
+          while (h != hh)
+            {
+              cmp = branch[depth++] ? 1 : -1;
+              if (cmp < 0)
+                {
+                  set_bf(hh, -1);
+                  hh = get_lt(hh);
+                }
+              else // cmp > 0
+                {
+                  set_bf(hh, 1);
+                  hh = get_gt(hh);
+                }
+              if (read_error())
+                return(null());
+            }
 
-	if (unbal != null())
-	  {
-	    unbal = balance(unbal);
-	    if (read_error())
-	      return(null());
-	    if (parent_unbal == null())
-	      abs.root = unbal;
-	    else
-	      {
-		depth = unbal_depth - 1;
-		cmp = branch[depth] ? 1 : -1;
-		if (cmp < 0)
-		  set_lt(parent_unbal, unbal);
-		else  // cmp > 0
-		  set_gt(parent_unbal, unbal);
-	      }
-	  }
+        if (unbal != null())
+          {
+            unbal = balance(unbal);
+            if (read_error())
+              return(null());
+            if (parent_unbal == null())
+              abs.root = unbal;
+            else
+              {
+                depth = unbal_depth - 1;
+                cmp = branch[depth] ? 1 : -1;
+                if (cmp < 0)
+                  set_lt(parent_unbal, unbal);
+                else  // cmp > 0
+                  set_gt(parent_unbal, unbal);
+              }
+          }
 
       }
 
@@ -845,26 +845,26 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 
     while (h != null())
       {
-	cmp = cmp_k_n(k, h);
-	if (cmp == 0)
-	  {
-	    if (st & EQUAL)
-	      {
-		match_h = h;
-		break;
-	      }
-	    cmp = -target_cmp;
-	  }
-	else if (target_cmp != 0)
-	  if (!((cmp ^ target_cmp) & MASK_HIGH_BIT))
-	    // cmp and target_cmp are both positive or both negative.
-	    match_h = h;
-	h = cmp < 0 ? get_lt(h) : get_gt(h);
-	if (read_error())
-	  {
-	    match_h = null();
-	    break;
-	  }
+        cmp = cmp_k_n(k, h);
+        if (cmp == 0)
+          {
+            if (st & EQUAL)
+              {
+                match_h = h;
+                break;
+              }
+            cmp = -target_cmp;
+          }
+        else if (target_cmp != 0)
+          if (!((cmp ^ target_cmp) & MASK_HIGH_BIT))
+            // cmp and target_cmp are both positive or both negative.
+            match_h = h;
+        h = cmp < 0 ? get_lt(h) : get_gt(h);
+        if (read_error())
+          {
+            match_h = null();
+            break;
+          }
       }
 
     return(match_h);
@@ -878,13 +878,13 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 
     while (h != null())
       {
-	parent = h;
-	h = get_lt(h);
-	if (read_error())
-	  {
-	    parent = null();
-	    break;
-	  }
+        parent = h;
+        h = get_lt(h);
+        if (read_error())
+          {
+            parent = null();
+            break;
+          }
       }
 
     return(parent);
@@ -898,13 +898,13 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 
     while (h != null())
       {
-	parent = h;
-	h = get_gt(h);
-	if (read_error())
-	  {
-	    parent = null();
-	    break;
-	  }
+        parent = h;
+        h = get_gt(h);
+        if (read_error())
+          {
+            parent = null();
+            break;
+          }
       }
 
     return(parent);
@@ -928,19 +928,19 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 
     for ( ; ; )
       {
-	if (h == null())
-	  // No node in tree with given key.
-	  return(null());
-	cmp = cmp_k_n(k, h);
-	if (cmp == 0)
-	  // Found node to remove.
-	  break;
-	parent = h;
-	h = cmp < 0 ? get_lt(h) : get_gt(h);
-	if (read_error())
-	  return(null());
-	aux.bs[depth++] = cmp > 0;
-	aux.cmp_shortened_sub_with_path = cmp;
+        if (h == null())
+          // No node in tree with given key.
+          return(null());
+        cmp = cmp_k_n(k, h);
+        if (cmp == 0)
+          // Found node to remove.
+          break;
+        parent = h;
+        h = cmp < 0 ? get_lt(h) : get_gt(h);
+        if (read_error())
+          return(null());
+        aux.bs[depth++] = cmp > 0;
+        aux.cmp_shortened_sub_with_path = cmp;
       }
     aux.parent = parent;
     aux.depth = depth;
@@ -964,15 +964,15 @@ inline bool
     int cmp;
     if (get_bf(h) < 0)
       {
-	child = get_lt(h);
-	aux.bs[depth] = false;
-	cmp = -1;
+        child = get_lt(h);
+        aux.bs[depth] = false;
+        cmp = -1;
       }
     else
       {
-	child = get_gt(h);
-	aux.bs[depth] = true;
-	cmp = 1;
+        child = get_gt(h);
+        aux.bs[depth] = true;
+        cmp = 1;
       }
     if (read_error())
       return(false);
@@ -980,36 +980,36 @@ inline bool
 
     if (child != null())
       {
-	cmp = -cmp;
-	do
-	  {
-	    parent = h;
-	    h = child;
-	    if (cmp < 0)
-	      {
-		child = get_lt(h);
-		aux.bs[depth] = false;
-	      }
-	    else
-	      {
-		child = get_gt(h);
-		aux.bs[depth] = true;
-	      }
-	    if (read_error())
-	      return(false);
-	    depth++;
-	  }
-	while (child != null());
+        cmp = -cmp;
+        do
+          {
+            parent = h;
+            h = child;
+            if (cmp < 0)
+              {
+                child = get_lt(h);
+                aux.bs[depth] = false;
+              }
+            else
+              {
+                child = get_gt(h);
+                aux.bs[depth] = true;
+              }
+            if (read_error())
+              return(false);
+            depth++;
+          }
+        while (child != null());
 
-	if (parent == rm)
-	  // Only went through do loop once.  Deleted node will be replaced
-	  // in the tree structure by one of its immediate children.
-	  aux.cmp_shortened_sub_with_path = -cmp;
+        if (parent == rm)
+          // Only went through do loop once.  Deleted node will be replaced
+          // in the tree structure by one of its immediate children.
+          aux.cmp_shortened_sub_with_path = -cmp;
         else
-	  aux.cmp_shortened_sub_with_path = cmp;
+          aux.cmp_shortened_sub_with_path = cmp;
 
-	// Get the handle of the opposite child, which may not be null.
-	child = cmp > 0 ? get_lt(h, false) : get_gt(h, false);
+        // Get the handle of the opposite child, which may not be null.
+        child = cmp > 0 ? get_lt(h, false) : get_gt(h, false);
       }
 
     if (parent == null())
@@ -1028,91 +1028,91 @@ inline bool
 
     if (h != rm)
       {
-	// Poke in the replacement for the node to be removed.
-	set_lt(h, get_lt(rm, false));
-	set_gt(h, get_gt(rm, false));
-	set_bf(h, get_bf(rm));
-	if (aux.parent == null())
-	  abs.root = h;
-	else
-	  {
-	    depth = aux.depth - 1;
-	    if (aux.bs[depth])
-	      set_gt(aux.parent, h);
-	    else
-	      set_lt(aux.parent, h);
-	  }
+        // Poke in the replacement for the node to be removed.
+        set_lt(h, get_lt(rm, false));
+        set_gt(h, get_gt(rm, false));
+        set_bf(h, get_bf(rm));
+        if (aux.parent == null())
+          abs.root = h;
+        else
+          {
+            depth = aux.depth - 1;
+            if (aux.bs[depth])
+              set_gt(aux.parent, h);
+            else
+              set_lt(aux.parent, h);
+          }
       }
 
     if (path != null())
       {
-	// Create a temporary linked list from the parent of the path node
-	// to the root node.
-	h = abs.root;
-	parent = null();
-	depth = 0;
-	while (h != path)
-	  {
-	    if (aux.bs[depth++])
-	      {
-	        child = get_gt(h);
-		set_gt(h, parent);
-	      }
-	    else
-	      {
-	        child = get_lt(h);
-		set_lt(h, parent);
-	      }
-	    if (read_error())
-	      return(false);
-	    parent = h;
-	    h = child;
-	  }
+        // Create a temporary linked list from the parent of the path node
+        // to the root node.
+        h = abs.root;
+        parent = null();
+        depth = 0;
+        while (h != path)
+          {
+            if (aux.bs[depth++])
+              {
+                child = get_gt(h);
+                set_gt(h, parent);
+              }
+            else
+              {
+                child = get_lt(h);
+                set_lt(h, parent);
+              }
+            if (read_error())
+              return(false);
+            parent = h;
+            h = child;
+          }
 
-	// Climb from the path node to the root node using the linked
-	// list, restoring the tree structure and rebalancing as necessary.
-	bool reduced_depth = true;
-	int bf;
-	cmp = aux.cmp_shortened_sub_with_path;
-	for ( ; ; )
-	  {
-	    if (reduced_depth)
-	      {
-		bf = get_bf(h);
-		if (cmp < 0)
-		  bf++;
-		else  // cmp > 0
-		  bf--;
-		if ((bf == -2) || (bf == 2))
-		  {
-		    h = balance(h);
-		    if (read_error())
-		      return(false);
-		    bf = get_bf(h);
-		  }
-		else
-		  set_bf(h, bf);
-		reduced_depth = (bf == 0);
-	      }
-	    if (parent == null())
-	      break;
-	    child = h;
-	    h = parent;
-	    cmp = aux.bs[--depth] ? 1 : -1;
-	    if (cmp < 0)
-	      {
-		parent = get_lt(h);
-		set_lt(h, child);
-	      }
-	    else
-	      {
-		parent = get_gt(h);
-		set_gt(h, child);
-	      }
-	    if (read_error())
-	      return(false);
-	  }
-	abs.root = h;
+        // Climb from the path node to the root node using the linked
+        // list, restoring the tree structure and rebalancing as necessary.
+        bool reduced_depth = true;
+        int bf;
+        cmp = aux.cmp_shortened_sub_with_path;
+        for ( ; ; )
+          {
+            if (reduced_depth)
+              {
+                bf = get_bf(h);
+                if (cmp < 0)
+                  bf++;
+                else  // cmp > 0
+                  bf--;
+                if ((bf == -2) || (bf == 2))
+                  {
+                    h = balance(h);
+                    if (read_error())
+                      return(false);
+                    bf = get_bf(h);
+                  }
+                else
+                  set_bf(h, bf);
+                reduced_depth = (bf == 0);
+              }
+            if (parent == null())
+              break;
+            child = h;
+            h = parent;
+            cmp = aux.bs[--depth] ? 1 : -1;
+            if (cmp < 0)
+              {
+                parent = get_lt(h);
+                set_lt(h, child);
+              }
+            else
+              {
+                parent = get_gt(h);
+                set_gt(h, child);
+              }
+            if (read_error())
+              return(false);
+          }
+        abs.root = h;
       }
 
     return(true);
@@ -1142,18 +1142,18 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
     /* Search for node already in tree with same key. */
     for ( ; ; )
       {
-	if (h == null())
-	  /* No node in tree with same key as new node. */
-	  return(null());
-	cmp = cmp_n_n(new_node, h);
-	if (cmp == 0)
-	  /* Found the node to substitute new one for. */
-	  break;
-	last_cmp = cmp;
-	parent = h;
-	h = cmp < 0 ? get_lt(h) : get_gt(h);
-	if (read_error())
-	  return(null());
+        if (h == null())
+          /* No node in tree with same key as new node. */
+          return(null());
+        cmp = cmp_n_n(new_node, h);
+        if (cmp == 0)
+          /* Found the node to substitute new one for. */
+          break;
+        last_cmp = cmp;
+        parent = h;
+        h = cmp < 0 ? get_lt(h) : get_gt(h);
+        if (read_error())
+          return(null());
       }
 
     /* Copy tree housekeeping fields from node in tree to new node. */
@@ -1166,11 +1166,11 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
       abs.root = new_node;
     else
       {
-	/* Make parent point to new node. */
-	if (last_cmp < 0)
-	  set_lt(parent, new_node);
-	else
-	  set_gt(parent, new_node);
+        /* Make parent point to new node. */
+        if (last_cmp < 0)
+          set_lt(parent, new_node);
+        else
+          set_gt(parent, new_node);
       }
 
     return(h);
