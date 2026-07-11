@@ -23,9 +23,9 @@ SOFTWARE.
 
 // Abstract AVL Tree Template.
 //
-// See avl_tree.html for interface documentation.
+// See avl_tree.md/.html for interface documentation.
 //
-// Version: 1.7.1
+// Version: 1.8
 //
 // NOTE: Within the implementation, it's generally more convenient to
 // define the depth of the root node to be 0 (0-based depth) rather than
@@ -101,6 +101,19 @@ class base_avl_tree
 
     inline handle remove(key k);
 
+    class remove_aux
+      {
+        handle parent;
+        bset bs;
+        unsigned depth;
+        int cmp_shortened_sub_with_path;
+
+        friend class base_avl_tree;
+      };
+
+    inline handle remove_search(key k, remove_aux &aux);
+    inline bool remove_after_search(handle h, remove_aux &aux);
+
     inline handle subst(handle new_node);
 
     void purge() { abs.root = null(); }
@@ -117,19 +130,19 @@ class base_avl_tree
     base_avl_tree() { abs.root = null(); }
     #endif
 
-    #if __cplusplus >= 201100
+  #if __cplusplus >= 201100
 
     base_avl_tree(const base_avl_tree &) = delete;
     base_avl_tree & operator = (const base_avl_tree &) = delete;
 
-    #else
+  #else
 
   private:
     base_avl_tree(const base_avl_tree &) { }
     base_avl_tree & operator = (const base_avl_tree &) { }
   public:
 
-    #endif
+  #endif
 
     class iter
       {
@@ -899,20 +912,19 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 
 template <class abstractor, unsigned max_depth, class bset>
 inline typename base_avl_tree<abstractor, max_depth, bset>::handle
-  base_avl_tree<abstractor, max_depth, bset>::remove(key k)
+  base_avl_tree<abstractor, max_depth, bset>::remove_search(key k, remove_aux &aux)
   {
     // Zero-based depth in tree.
-    unsigned depth = 0, rm_depth;
+    unsigned depth = 0;
 
-    // Records a path into the tree.  If branch[n] is true, indicates
+    // aux.bs a path into the tree.  If aux.bs[n] is true, indicates
     // take greater branch from the nth node in the path, otherwise
-    // take the less branch.  branch[0] gives branch from root, and
+    // take the less branch.  aux.bs[0] gives branch from root, and
     // so on.
-    bset branch;
 
     handle h = abs.root;
-    handle parent = null(), child;
-    int cmp, cmp_shortened_sub_with_path;
+    handle parent = null();
+    int cmp;
 
     for ( ; ; )
       {
@@ -927,13 +939,19 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 	h = cmp < 0 ? get_lt(h) : get_gt(h);
 	if (read_error())
 	  return(null());
-	branch[depth++] = cmp > 0;
-	cmp_shortened_sub_with_path = cmp;
+	aux.bs[depth++] = cmp > 0;
+	aux.cmp_shortened_sub_with_path = cmp;
       }
-    handle rm = h;
-    handle parent_rm = parent;
-    rm_depth = depth;
+    aux.parent = parent;
+    aux.depth = depth;
 
+    return h;
+  }
+
+template <class abstractor, unsigned max_depth, class bset>
+inline bool
+  base_avl_tree<abstractor, max_depth, bset>::remove_after_search(handle rm, remove_aux &aux)
+  {
     // If the node to remove is not a leaf node, we need to get a
     // leaf node, or a node with a single leaf as its child, to put
     // in the place of the node to remove.  We will get the greatest
@@ -941,20 +959,23 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
     // node in the greater subtree.  We take the leaf node from the
     // deeper subtree, if there is one.
 
+    handle h = rm, parent = aux.parent, child;
+    unsigned depth = aux.depth;
+    int cmp;
     if (get_bf(h) < 0)
       {
 	child = get_lt(h);
-	branch[depth] = false;
+	aux.bs[depth] = false;
 	cmp = -1;
       }
     else
       {
 	child = get_gt(h);
-	branch[depth] = true;
+	aux.bs[depth] = true;
 	cmp = 1;
       }
     if (read_error())
-      return(null());
+      return(false);
     depth++;
 
     if (child != null())
@@ -967,15 +988,15 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 	    if (cmp < 0)
 	      {
 		child = get_lt(h);
-		branch[depth] = false;
+		aux.bs[depth] = false;
 	      }
 	    else
 	      {
 		child = get_gt(h);
-		branch[depth] = true;
+		aux.bs[depth] = true;
 	      }
 	    if (read_error())
-	      return(null());
+	      return(false);
 	    depth++;
 	  }
 	while (child != null());
@@ -983,9 +1004,9 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 	if (parent == rm)
 	  // Only went through do loop once.  Deleted node will be replaced
 	  // in the tree structure by one of its immediate children.
-	  cmp_shortened_sub_with_path = -cmp;
+	  aux.cmp_shortened_sub_with_path = -cmp;
         else
-	  cmp_shortened_sub_with_path = cmp;
+	  aux.cmp_shortened_sub_with_path = cmp;
 
 	// Get the handle of the opposite child, which may not be null.
 	child = cmp > 0 ? get_lt(h, false) : get_gt(h, false);
@@ -994,7 +1015,7 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
     if (parent == null())
       // There were only 1 or 2 nodes in this tree.
       abs.root = child;
-    else if (cmp_shortened_sub_with_path < 0)
+    else if (aux.cmp_shortened_sub_with_path < 0)
       set_lt(parent, child);
     else
       set_gt(parent, child);
@@ -1011,15 +1032,15 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 	set_lt(h, get_lt(rm, false));
 	set_gt(h, get_gt(rm, false));
 	set_bf(h, get_bf(rm));
-	if (parent_rm == null())
+	if (aux.parent == null())
 	  abs.root = h;
 	else
 	  {
-	    depth = rm_depth - 1;
-	    if (branch[depth])
-	      set_gt(parent_rm, h);
+	    depth = aux.depth - 1;
+	    if (aux.bs[depth])
+	      set_gt(aux.parent, h);
 	    else
-	      set_lt(parent_rm, h);
+	      set_lt(aux.parent, h);
 	  }
       }
 
@@ -1032,7 +1053,7 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 	depth = 0;
 	while (h != path)
 	  {
-	    if (branch[depth++])
+	    if (aux.bs[depth++])
 	      {
 	        child = get_gt(h);
 		set_gt(h, parent);
@@ -1043,7 +1064,7 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 		set_lt(h, parent);
 	      }
 	    if (read_error())
-	      return(null());
+	      return(false);
 	    parent = h;
 	    h = child;
 	  }
@@ -1052,7 +1073,7 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 	// list, restoring the tree structure and rebalancing as necessary.
 	bool reduced_depth = true;
 	int bf;
-	cmp = cmp_shortened_sub_with_path;
+	cmp = aux.cmp_shortened_sub_with_path;
 	for ( ; ; )
 	  {
 	    if (reduced_depth)
@@ -1066,7 +1087,7 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 		  {
 		    h = balance(h);
 		    if (read_error())
-		      return(null());
+		      return(false);
 		    bf = get_bf(h);
 		  }
 		else
@@ -1077,7 +1098,7 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 	      break;
 	    child = h;
 	    h = parent;
-	    cmp = branch[--depth] ? 1 : -1;
+	    cmp = aux.bs[--depth] ? 1 : -1;
 	    if (cmp < 0)
 	      {
 		parent = get_lt(h);
@@ -1089,12 +1110,25 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 		set_gt(h, child);
 	      }
 	    if (read_error())
-	      return(null());
+	      return(false);
 	  }
 	abs.root = h;
       }
 
-    return(rm);
+    return(true);
+  }
+
+template <class abstractor, unsigned max_depth, class bset>
+inline typename base_avl_tree<abstractor, max_depth, bset>::handle
+  base_avl_tree<abstractor, max_depth, bset>::remove(key k)
+  {
+    remove_aux aux;
+    handle h = remove_search(k, aux);
+
+    if ((null() == h) || !remove_after_search(h, aux))
+      return(null());
+
+    return(h);
   }
 
 template <class abstractor, unsigned max_depth, class bset>
