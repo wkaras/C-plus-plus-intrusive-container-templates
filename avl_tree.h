@@ -25,7 +25,7 @@ SOFTWARE.
 //
 // See avl_tree.md/.html for interface documentation.
 //
-// Version: 1.8
+// Version: 1.8.1
 //
 // NOTE: Within the implementation, it's generally more convenient to
 // define the depth of the root node to be 0 (0-based depth) rather than
@@ -148,10 +148,6 @@ class base_avl_tree
       {
       public:
 
-        // NOTE:  GCC allows these member functions to be defined as
-        // explicitly inline outside the class, but Visual C++ .NET does
-        // not.
-
         // Initialize depth to invalid value, to indicate iterator is
         // invalid.   (Depth is zero-base.)
         #if __cplusplus >= 201100
@@ -159,198 +155,17 @@ class base_avl_tree
         #endif
         iter() : depth(unsigned(~0)) { }
 
-        void start_iter(base_avl_tree &tree, key k, search_type st = EQUAL)
-          {
-            // Mask of high bit in an int.
-            const int MASK_HIGH_BIT = (int) ~ ((~ (unsigned) 0) >> 1);
+        void start_iter(base_avl_tree &tree, key k, search_type st = EQUAL);
 
-            // Save the tree that we're going to iterate through in a
-            // member variable.
-            tree_ = &tree;
+        void start_iter_least(base_avl_tree &tree);
 
-            int cmp, target_cmp;
-            handle h = tree_->abs.root;
-            unsigned d = 0;
+        void start_iter_greatest(base_avl_tree &tree);
 
-            depth = unsigned(~0);
+        handle operator * ();
 
-            if (h == null())
-              // Tree is empty.
-              return;
+        void operator ++ ();
 
-            if (st & LESS)
-              // Key can be greater than key of starting node.
-              target_cmp = 1;
-            else if (st & GREATER)
-              // Key can be less than key of starting node.
-              target_cmp = -1;
-            else
-              // Key must be same as key of starting node.
-              target_cmp = 0;
-
-            for ( ; ; )
-              {
-                cmp = cmp_k_n(k, h);
-                if (cmp == 0)
-                  {
-                    if (st & EQUAL)
-                      {
-                        // Equal node was sought and found as starting node.
-                        depth = d;
-                        break;
-                      }
-                    cmp = -target_cmp;
-                  }
-                else if (target_cmp != 0)
-                  if (!((cmp ^ target_cmp) & MASK_HIGH_BIT))
-                    // cmp and target_cmp are both negative or both positive.
-                    depth = d;
-                h = cmp < 0 ? get_lt(h) : get_gt(h);
-                if (read_error())
-                  {
-                    depth = unsigned(~0);
-                    break;
-                  }
-                if (h == null())
-                  break;
-                branch[d] = cmp > 0;
-                path_h[d++] = h;
-              }
-          }
-
-        void start_iter_least(base_avl_tree &tree)
-          {
-            tree_ = &tree;
-
-            handle h = tree_->abs.root;
-
-            depth = unsigned(~0);
-
-            branch.reset();
-
-            while (h != null())
-              {
-                if (depth != unsigned(~0))
-                  path_h[depth] = h;
-                depth++;
-                h = get_lt(h);
-                if (read_error())
-                  {
-                    depth = unsigned(~0);
-                    break;
-                  }
-              }
-          }
-
-        void start_iter_greatest(base_avl_tree &tree)
-          {
-            tree_ = &tree;
-
-            handle h = tree_->abs.root;
-
-            depth = unsigned(~0);
-
-            branch.set();
-
-            while (h != null())
-              {
-                if (depth != unsigned(~0))
-                  path_h[depth] = h;
-                depth++;
-                h = get_gt(h);
-                if (read_error())
-                  {
-                    depth = unsigned(~0);
-                    break;
-                  }
-              }
-          }
-
-        handle operator * ()
-          {
-            if (depth == unsigned(~0))
-              return(null());
-
-            return(depth == 0 ? tree_->abs.root : path_h[depth - 1]);
-          }
-
-        void operator ++ ()
-          {
-            if (depth != unsigned(~0))
-              {
-                handle h = get_gt(**this);
-                if (read_error())
-                  depth = unsigned(~0);
-                else if (h == null())
-                  do
-                    {
-                      if (depth == 0)
-                        {
-                          depth = unsigned(~0);
-                          break;
-                        }
-                      depth--;
-                    }
-                  while (branch[depth]);
-                else
-                  {
-                    branch[depth] = true;
-                    path_h[depth++] = h;
-                    for ( ; ; )
-                      {
-                        h = get_lt(h);
-                        if (read_error())
-                          {
-                            depth = unsigned(~0);
-                            break;
-                          }
-                        if (h == null())
-                          break;
-                        branch[depth] = false;
-                        path_h[depth++] = h;
-                      }
-                  }
-              }
-          }
-
-        void operator -- ()
-          {
-            if (depth != unsigned(~0))
-              {
-                handle h = get_lt(**this);
-                if (read_error())
-                  depth = unsigned(~0);
-                else if (h == null())
-                  do
-                    {
-                      if (depth == 0)
-                        {
-                          depth = unsigned(~0);
-                          break;
-                        }
-                      depth--;
-                    }
-                  while (!branch[depth]);
-                else
-                  {
-                    branch[depth] = false;
-                    path_h[depth++] = h;
-                    for ( ; ; )
-                      {
-                        h = get_gt(h);
-                        if (read_error())
-                          {
-                            depth = unsigned(~0);
-                            break;
-                          }
-                        if (h == null())
-                          break;
-                        branch[depth] = true;
-                        path_h[depth++] = h;
-                      }
-                  }
-              }
-          }
+        void operator -- ();
 
         void operator ++ (int) { ++(*this); }
 
@@ -387,158 +202,9 @@ class base_avl_tree
 
       };
 
-    template<typename fwd_iter>
-    bool build(fwd_iter p, size num_nodes)
-      {
-        // NOTE:  GCC allows me to define this outside the class definition
-        // using the following syntax:
-        //
-        // template <class abstractor, unsigned max_depth, class bset>
-        // template<typename fwd_iter>
-        // inline void base_avl_tree<abstractor, max_depth, bset>::build(
-        //   fwd_iter p, size num_nodes)
-        //   {
-        //     ...
-        //   }
-        //
-        // but Visual C++ .NET won't accept it.  Is this a GCC extension?
-
-        if (num_nodes == 0)
-          {
-            abs.root = null();
-            return(true);
-          }
-
-        // Gives path to subtree being built.  If branch[N] is false, branch
-        // less from the node at depth N, if true branch greater.
-        bset branch;
-
-        // If rem[N] is true, then for the current subtree at depth N, it's
-        // greater subtree has one more node than it's less subtree.
-        bset rem;
-
-        // Depth of root node of current subtree.
-        unsigned depth = 0;
-
-        // Number of nodes in current subtree.
-        size num_sub = num_nodes;
-
-        // The algorithm relies on a stack of nodes whose less subtree has
-        // been built, but whose right subtree has not yet been built.  The
-        // stack is implemented as linked list.  The nodes are linked
-        // together by having the "greater" handle of a node set to the
-        // next node in the list.  "less_parent" is the handle of the first
-        // node in the list.
-        handle less_parent = null();
-
-        // h is root of current subtree, child is one of its children.
-        handle h, child;
-
-        for ( ; ; )
-          {
-            while (num_sub > 2)
-              {
-                // Subtract one for root of subtree.
-                num_sub--;
-                rem[depth] = !!(num_sub & 1);
-                branch[depth++] = false;
-                num_sub >>= 1;
-              }
-
-            if (num_sub == 2)
-              {
-                // Build a subtree with two nodes, slanting to greater.
-                // I arbitrarily chose to always have the extra node in the
-                // greater subtree when there is an odd number of nodes to
-                // split between the two subtrees.
-
-                h = *p;
-                if (read_error())
-                  return(false);
-                p++;
-                child = *p;
-                if (read_error())
-                  return(false);
-                p++;
-                set_lt(child, null());
-                set_gt(child, null());
-                set_bf(child, 0);
-                set_gt(h, child);
-                set_lt(h, null());
-                set_bf(h, 1);
-              }
-            else  // num_sub == 1
-              {
-                // Build a subtree with one node.
-
-                h = *p;
-                if (read_error())
-                  return(false);
-                p++;
-                set_lt(h, null());
-                set_gt(h, null());
-                set_bf(h, 0);
-              }
-
-            while (depth)
-              {
-                depth--;
-                if (!branch[depth])
-                  // We've completed a less subtree.
-                  break;
-
-                // We've completed a greater subtree, so attach it to
-                // its parent (that is less than it).  We pop the parent
-                // off the stack of less parents.
-                child = h;
-                h = less_parent;
-                less_parent = get_gt(h);
-                if (read_error())
-                  return(false);
-                set_gt(h, child);
-                // num_sub = 2 * (num_sub - rem[depth]) + rem[depth] + 1
-                num_sub <<= 1;
-                num_sub += 1 - rem[depth];
-                if (num_sub & (num_sub - 1))
-                  // num_sub is not a power of 2
-                  set_bf(h, 0);
-                else
-                  // num_sub is a power of 2
-                  set_bf(h, 1);
-              }
-
-            if (num_sub == num_nodes)
-              // We've completed the full tree.
-              break;
-
-            // The subtree we've completed is the less subtree of the
-            // next node in the sequence.
-
-            child = h;
-            h = *p;
-            if (read_error())
-              return(false);
-            p++;
-            set_lt(h, child);
-
-            // Put h into stack of less parents.
-            set_gt(h, less_parent);
-            less_parent = h;
-
-            // Proceed to creating greater than subtree of h.
-            branch[depth] = true;
-            num_sub += rem[depth++];
-
-          } // end for ( ; ; )
-
-        abs.root = h;
-
-        return(true);
-      }
+    template<typename fwd_iter> bool build(fwd_iter p, size num_nodes);
 
   protected:
-
-    friend class iter;
 
     // Create a class whose sole purpose is to take advantage of
     // the "empty member" optimization.
@@ -549,7 +215,8 @@ class base_avl_tree
 
         #if __cplusplus >= 201100
         template<typename ... args_t>
-        abs_plus_root(args_t && ... args) : abstractor(std::forward<args_t>(args)...) { }
+        abs_plus_root(args_t && ... args)
+          : abstractor(std::forward<args_t>(args)...) { }
         #endif
       };
 
@@ -912,7 +579,8 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 
 template <class abstractor, unsigned max_depth, class bset>
 inline typename base_avl_tree<abstractor, max_depth, bset>::handle
-  base_avl_tree<abstractor, max_depth, bset>::remove_search(key k, remove_aux &aux)
+  base_avl_tree<abstractor, max_depth, bset>::remove_search(
+    key k, remove_aux &aux)
   {
     // Zero-based depth in tree.
     unsigned depth = 0;
@@ -950,7 +618,8 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
 
 template <class abstractor, unsigned max_depth, class bset>
 inline bool
-  base_avl_tree<abstractor, max_depth, bset>::remove_after_search(handle rm, remove_aux &aux)
+  base_avl_tree<abstractor, max_depth, bset>::remove_after_search(
+    handle rm, remove_aux &aux)
   {
     // If the node to remove is not a leaf node, we need to get a
     // leaf node, or a node with a single leaf as its child, to put
@@ -1174,6 +843,395 @@ inline typename base_avl_tree<abstractor, max_depth, bset>::handle
       }
 
     return(h);
+  }
+
+template <class abstractor, unsigned max_depth, class bset>
+void base_avl_tree<abstractor, max_depth, bset>::iter::start_iter(
+  base_avl_tree &tree, key k, search_type st)
+  {
+    // Mask of high bit in an int.
+    const int MASK_HIGH_BIT = (int) ~ ((~ (unsigned) 0) >> 1);
+
+    // Save the tree that we're going to iterate through in a
+    // member variable.
+    tree_ = &tree;
+
+    int cmp, target_cmp;
+    handle h = tree_->abs.root;
+    unsigned d = 0;
+
+    depth = unsigned(~0);
+
+    if (h == null())
+      // Tree is empty.
+      return;
+
+    if (st & LESS)
+      // Key can be greater than key of starting node.
+      target_cmp = 1;
+    else if (st & GREATER)
+      // Key can be less than key of starting node.
+      target_cmp = -1;
+    else
+      // Key must be same as key of starting node.
+      target_cmp = 0;
+
+    for ( ; ; )
+      {
+        cmp = cmp_k_n(k, h);
+        if (cmp == 0)
+          {
+            if (st & EQUAL)
+              {
+                // Equal node was sought and found as starting node.
+                depth = d;
+                break;
+              }
+            cmp = -target_cmp;
+          }
+        else if (target_cmp != 0)
+          if (!((cmp ^ target_cmp) & MASK_HIGH_BIT))
+            // cmp and target_cmp are both negative or both positive.
+            depth = d;
+        h = cmp < 0 ? get_lt(h) : get_gt(h);
+        if (read_error())
+          {
+            depth = unsigned(~0);
+            break;
+          }
+        if (h == null())
+          break;
+        branch[d] = cmp > 0;
+        path_h[d++] = h;
+      }
+  }
+
+template <class abstractor, unsigned max_depth, class bset>
+void base_avl_tree<abstractor, max_depth, bset>::iter::start_iter_least(
+  base_avl_tree &tree)
+  {
+    tree_ = &tree;
+
+    handle h = tree_->abs.root;
+
+    depth = unsigned(~0);
+
+    branch.reset();
+
+    while (h != null())
+      {
+        if (depth != unsigned(~0))
+          path_h[depth] = h;
+        depth++;
+        h = get_lt(h);
+        if (read_error())
+          {
+            depth = unsigned(~0);
+            break;
+          }
+      }
+  }
+
+template <class abstractor, unsigned max_depth, class bset>
+void
+base_avl_tree<abstractor, max_depth, bset>::iter::start_iter_greatest(
+  base_avl_tree &tree)
+  {
+    tree_ = &tree;
+
+    handle h = tree_->abs.root;
+
+    depth = unsigned(~0);
+
+    branch.set();
+
+    while (h != null())
+      {
+        if (depth != unsigned(~0))
+          path_h[depth] = h;
+        depth++;
+        h = get_gt(h);
+        if (read_error())
+          {
+            depth = unsigned(~0);
+            break;
+          }
+      }
+  }
+
+template <class abstractor, unsigned max_depth, class bset>
+typename base_avl_tree<abstractor, max_depth, bset>::handle
+base_avl_tree<abstractor, max_depth, bset>::iter::operator * ()
+  {
+    if (depth == unsigned(~0))
+      return(null());
+
+    return(depth == 0 ? tree_->abs.root : path_h[depth - 1]);
+  }
+
+
+template <class abstractor, unsigned max_depth, class bset>
+void base_avl_tree<abstractor, max_depth, bset>::iter::operator ++ ()
+  {
+    if (depth != unsigned(~0))
+      {
+        handle h = get_gt(**this);
+        if (read_error())
+          depth = unsigned(~0);
+        else if (h == null())
+          do
+            {
+              if (depth == 0)
+                {
+                  depth = unsigned(~0);
+                  break;
+                }
+              depth--;
+            }
+          while (branch[depth]);
+        else
+          {
+            branch[depth] = true;
+            path_h[depth++] = h;
+            for ( ; ; )
+              {
+                h = get_lt(h);
+                if (read_error())
+                  {
+                    depth = unsigned(~0);
+                    break;
+                  }
+                if (h == null())
+                  break;
+                branch[depth] = false;
+                path_h[depth++] = h;
+              }
+          }
+      }
+  }
+
+template <class abstractor, unsigned max_depth, class bset>
+void base_avl_tree<abstractor, max_depth, bset>::iter::operator -- ()
+  {
+    if (depth != unsigned(~0))
+      {
+        handle h = get_lt(**this);
+        if (read_error())
+          depth = unsigned(~0);
+        else if (h == null())
+          do
+            {
+              if (depth == 0)
+                {
+                  depth = unsigned(~0);
+                  break;
+                }
+              depth--;
+            }
+          while (!branch[depth]);
+        else
+          {
+            branch[depth] = false;
+            path_h[depth++] = h;
+            for ( ; ; )
+              {
+                h = get_gt(h);
+                if (read_error())
+                  {
+                    depth = unsigned(~0);
+                    break;
+                  }
+                if (h == null())
+                  break;
+                branch[depth] = true;
+                path_h[depth++] = h;
+              }
+          }
+      }
+  }
+
+template <class abstractor, unsigned max_depth, class bset>
+template<typename fwd_iter>
+bool base_avl_tree<abstractor, max_depth, bset>::build(
+  fwd_iter p, size num_nodes)
+  {
+    /*
+    This function builds AVL trees where, for any node in the tree, the greater
+    subtree has the same number of nodes as the less subtree, or one more node
+    than the less subtree.
+
+    If the number of nodes in the tree is less than 2**N, then the (zero-base)
+    depth of the tree will be less than N.  This can be proven by induction.
+    If N equals 1, the depth of a one-node tree is less than one.  If a tree
+    has less than 2**N nodes, with N > 1, then the two subtrees of the root
+    have less than 2**(N - 1) nodes.  So the depth of both subtrees is less
+    than N - 1.  Thus, the depth of the full tree is less than N.
+
+    This means that the depth of a tree built with this function must be less
+    than or equal to the number of bits of precision needed to hold the
+    num_nodes value, and therefore less than the precision of the largest
+    possible positive value of the size type.
+
+    If the number of nodes in the tree is exactly 2**N, then all nodes will
+    have a depth of less than N, except the node with the greatest node in the
+    tree, which will have a depth of N.  This can be proven by induction.
+    If N equals 1, the depth of the greatest element is 1.  If N > 1, the
+    left subtree has 2**(N - 1) - 1 nodes, so all its nodes have a depth less
+    than N in the full tree.  The greater subtree has 2**(N - 1) nodes.  All
+    its nodes except for the greatest has a depth less than N in the full tree.
+    The greatest node in the greater subtree has a depth of N in the full tree.
+    */
+
+    if (num_nodes == 0)
+      {
+        abs.root = null();
+        return(true);
+      }
+
+    // The value will be 1 << D, where D is the zero-based depth of the root
+    // node of the subtree currently being built.
+    size depth_mask = 1;
+
+    // Bitmap that gives path to root of the subtree being built.  If
+    // (branch & (1 << D)) is zero, the next node in the path after the node
+    // at depth D will be its less child.  Otherwise, the next node is the
+    // greater child.
+    size branch;
+
+    // If (odd & (1 << D)), then the subtree currently being built at depth
+    // D has an odd number of nodes.  Otherwise, it has an even number of
+    // nodes.
+    size odd;
+
+    // Number of nodes in current subtree being built.
+    size num_sub = num_nodes;
+
+    // The algorithm relies on a stack of nodes whose less subtree has
+    // been built, but whose right subtree has not yet been built.  The
+    // stack is implemented as linked list.  The nodes are linked
+    // together by having the "greater" handle of a node set to the
+    // next node in the list.  "less_parent" is the handle of the first
+    // node in the list.
+    handle less_parent = null();
+
+    // h is root of current subtree being built, child is one of its children.
+    handle h, child;
+
+    for ( ; ; )
+      {
+        while (num_sub > 2)
+          {
+            if (num_sub & 1)
+              odd |= depth_mask;
+            else
+              odd &= size(~depth_mask);
+
+            // Subtract one for root of subtree.
+            num_sub--;
+
+            // Build the less subtree at the next depth first.
+            num_sub >>= 1;
+            branch &= size(~depth_mask);
+            depth_mask <<= 1;
+          }
+
+        if (num_sub == 2)
+          {
+            // Build a subtree with two nodes, slanting to greater.
+            // I arbitrarily chose to always have the extra node in the
+            // greater subtree when there is an odd number of nodes to
+            // split between the two subtrees.
+
+            h = *p;
+            if (read_error())
+              return(false);
+            p++;
+            child = *p;
+            if (read_error())
+              return(false);
+            p++;
+            set_lt(child, null());
+            set_gt(child, null());
+            set_bf(child, 0);
+            set_gt(h, child);
+            set_lt(h, null());
+            set_bf(h, 1);
+          }
+        else  // num_sub == 1
+          {
+            // Build a subtree with one node.
+
+            h = *p;
+            if (read_error())
+              return(false);
+            p++;
+            set_lt(h, null());
+            set_gt(h, null());
+            set_bf(h, 0);
+          }
+
+        while (depth_mask > 1)
+          {
+            depth_mask >>= 1;
+            if ((branch & depth_mask) == 0)
+              // We've completed a less subtree.
+              break;
+
+            // We've completed a greater subtree, so attach it to its parent
+            // (that is less than it).  We pop the parent off the stack of
+            // less parents.
+            child = h;
+            h = less_parent;
+            less_parent = get_gt(h);
+            if (read_error())
+              return(false);
+            set_gt(h, child);
+            num_sub <<= 1;
+            if (odd & depth_mask)
+              // The greater subtree has one more node than the less subtree.
+              ++num_sub;
+            if (num_sub & (num_sub - 1))
+              // num_sub is not a power of 2.
+              set_bf(h, 0);
+            else
+              // num_sub is a power of 2, so greater subtree is deeper by 1.
+              set_bf(h, 1);
+          }
+
+        if (num_sub == num_nodes)
+          // We've completed the full tree.
+          break;
+
+        // The subtree we've completed is the less subtree of the next node in
+        // the sequence.
+
+        child = h;
+        h = *p;
+        if (read_error())
+          return(false);
+        p++;
+        set_lt(h, child);
+
+        // Put h into stack of less parents.
+        set_gt(h, less_parent);
+        less_parent = h;
+
+        // Proceed to creating greater than subtree of h.
+        branch |= depth_mask;
+        if (!(odd & depth_mask))
+          {
+            ++num_sub;
+            depth_mask <<= 1;
+            odd ^= depth_mask;
+          }
+        else
+          depth_mask <<= 1;
+
+      } // end for ( ; ; )
+
+    abs.root = h;
+
+    return(true);
   }
 
 // I tried to avoid having a separate base_avl_tree template by having
